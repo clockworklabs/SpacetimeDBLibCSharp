@@ -17,6 +17,7 @@ static class Utils
             symbol.ToDisplayString(
                 SymbolDisplayFormat.FullyQualifiedFormat
                     .WithMemberOptions(SymbolDisplayMemberOptions.IncludeContainingType)
+                    .WithGenericsOptions(SymbolDisplayGenericsOptions.None)
                     .WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)
             )
         );
