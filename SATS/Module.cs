@@ -42,16 +42,19 @@ public partial struct TableDef
     string Name;
     AlgebraicTypeRef Data;
     ColumnIndexAttributeWrapper[] ColumnAttrs;
+    IndexDef[] Indices;
 
     public TableDef(
         string name,
         AlgebraicTypeRef type,
-        params ColumnIndexAttributeKind[] columnAttrs
+        ColumnIndexAttributeKind[] columnAttrs,
+        IndexDef[] indices
     )
     {
         Name = name;
         Data = type;
         ColumnAttrs = columnAttrs.Select(a => new ColumnIndexAttributeWrapper(a)).ToArray();
+        Indices = indices;
     }
 }
 

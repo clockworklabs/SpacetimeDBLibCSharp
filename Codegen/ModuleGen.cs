@@ -99,8 +99,9 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                     $@"
                 module.Add(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
-                    module.AddType({t.FullName}.GetSatsTypeInfo().algebraicType)
-                    {string.Join("", t.Attrs.Select(a => $",\n{a}"))}
+                    module.AddType({t.FullName}.GetSatsTypeInfo().algebraicType),
+                    new SpacetimeDB.Module.ColumnIndexAttributeKind[] {{ {string.Join(", ", t.Attrs)} }},
+                    new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
             "
             )
