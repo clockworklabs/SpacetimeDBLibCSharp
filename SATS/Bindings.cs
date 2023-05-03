@@ -143,7 +143,6 @@ public static class Bindings
         Panic
     }
 
-    // TODO: integrate with .NET custom logger?
     [MethodImpl(MethodImplOptions.InternalCall)]
     public extern static void Log(
         string text,
