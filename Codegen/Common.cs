@@ -86,7 +86,9 @@ static class Utils
                         )
                 },
             IArrayTypeSymbol arrayType
-                => $"SpacetimeDB.SATS.BuiltinType.MakeArray({GetTypeInfo(arrayType.ElementType)})",
+                => arrayType.ElementType is INamedTypeSymbol namedType && namedType.SpecialType == SpecialType.System_Byte
+                   ? "SpacetimeDB.SATS.BuiltinType.BytesTypeInfo"
+                   : $"SpacetimeDB.SATS.BuiltinType.MakeArray({GetTypeInfo(arrayType.ElementType)})",
             _ => throw new InvalidOperationException($"Unsupported type {type}")
         };
     }

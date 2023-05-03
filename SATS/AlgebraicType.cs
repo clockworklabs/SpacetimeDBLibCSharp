@@ -284,10 +284,22 @@ namespace SpacetimeDB.SATS
             (writer, value) => writer.Write(value)
         );
 
+        public static readonly TypeInfo<byte[]> BytesTypeInfo = new TypeInfo<byte[]>(
+            new BuiltinType { Array = new AlgebraicTypeBox(U8TypeInfo.algebraicType) },
+            (reader) => {
+                var length = reader.ReadInt32();
+                return reader.ReadBytes(length);
+            },
+            (writer, value) => {
+                writer.Write(value.Length);
+                writer.Write(value);
+            }
+        );
+
         public static readonly TypeInfo<string> StringTypeInfo = new TypeInfo<string>(
             new BuiltinType { String = default },
-            (reader) => reader.ReadString(),
-            (writer, value) => writer.Write(value)
+            (reader) => Encoding.UTF8.GetString(BytesTypeInfo.read(reader)),
+            (writer, value) => BytesTypeInfo.write(writer, Encoding.UTF8.GetBytes(value))
         );
 
         private static IEnumerable<T> ReadEnumerable<T>(
@@ -301,11 +313,11 @@ namespace SpacetimeDB.SATS
 
         private static void WriteEnumerable<T>(
             BinaryWriter writer,
-            IEnumerable<T> enumerable,
+            ICollection<T> enumerable,
             Action<BinaryWriter, T> writeElement
         )
         {
-            writer.Write(enumerable.Count());
+            writer.Write(enumerable.Count);
             foreach (var element in enumerable)
             {
                 writeElement(writer, element);
