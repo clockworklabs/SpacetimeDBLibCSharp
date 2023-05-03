@@ -145,9 +145,9 @@ public static class Bindings
 
     // TODO: integrate with .NET custom logger?
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public extern static void ConsoleLog(
-        LogLevel level,
+    public extern static void Log(
         string text,
+        LogLevel level = LogLevel.Info,
         [CallerMemberName] string target = "",
         [CallerFilePath] string filename = "",
         [CallerLineNumber] uint lineNumber = 0
