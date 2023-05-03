@@ -55,6 +55,19 @@ public static class Bindings
         byte[] rangeEnd
     );
 
+    // Ideally these methods would be scoped under BufferIter,
+    // but Mono bindings don't seem to work correctly with nested
+    // classes.
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void BufferIterStart(uint table_id, out uint handle);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern byte[]? BufferIterNext(uint handle);
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private extern static void BufferIterDrop(ref uint handle);
+
     private class BufferIter : IEnumerator<byte[]>, IDisposable
     {
         private uint handle;
@@ -62,24 +75,15 @@ public static class Bindings
 
         object IEnumerator.Current => Current;
 
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        public static extern void Start(uint table_id, out uint handle);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private static extern byte[]? Next(uint handle);
-
-        [MethodImpl(MethodImplOptions.InternalCall)]
-        private extern static void Drop(ref uint handle);
-
         public BufferIter(uint table_id)
         {
-            Start(table_id, out handle);
+            BufferIterStart(table_id, out handle);
         }
 
         public bool MoveNext()
         {
             Current = new byte[0];
-            var next = Next(handle);
+            var next = BufferIterNext(handle);
             if (next is not null)
             {
                 Current = next;
@@ -89,7 +93,7 @@ public static class Bindings
 
         public void Dispose()
         {
-            Drop(ref handle);
+            BufferIterDrop(ref handle);
         }
 
         // Free unmanaged resource just in case user hasn't disposed for some reason.
