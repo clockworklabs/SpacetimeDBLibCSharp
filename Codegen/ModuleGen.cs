@@ -75,14 +75,14 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                 {
                     var extensions = t.Scope.GenerateExtensions(
                         $@"
-                            private static uint tableId = SpacetimeDB.Bindings.GetTableId(nameof({t.Name}));
+                            private static Lazy<uint> tableId = new (() => SpacetimeDB.Bindings.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
-                                new SpacetimeDB.Bindings.RawTableIter(tableId)
+                                new SpacetimeDB.Bindings.RawTableIter(tableId.Value)
                                 .Select(GetSatsTypeInfo().ReadBytes);
 
                             public void Insert() => SpacetimeDB.Bindings.Insert(
-                                tableId,
+                                tableId.Value,
                                 GetSatsTypeInfo().ToBytes(this)
                             );
                         "
