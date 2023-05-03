@@ -174,12 +174,9 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
 #pragma warning disable CA2255
                 // [ModuleInitializer]
                 public static void Main() {{
-                    ConsoleLog(LogLevel.Info, ""Registering reducers..."");
                     {string.Join("\n", reducers.Select(r => $"FFI.RegisterReducer(new {r.Name}());"))}
-                    ConsoleLog(LogLevel.Info, ""Registering tables..."");
                     var module = FFI.Module;
                     {string.Join("\n", addTables)}
-                    ConsoleLog(LogLevel.Info, ""Done registering module"");
                 }}
 #pragma warning restore CA2255
             }}
