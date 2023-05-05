@@ -30,7 +30,7 @@ static void check_result(uint16_t result) {
     // TODO: figure out how to properly throw exception.
     // `mono_raise_exception` for some reason always results in Wasm sig
     // mismatch.
-    INVOKE_DOTNET_METHOD("SpacetimeSATS.dll", "SpacetimeDB", "Bindings",
+    INVOKE_DOTNET_METHOD("SpacetimeDB.Runtime.dll", "SpacetimeDB", "Runtime",
                          "ThrowForResult", NULL, &result);
   }
 }
@@ -357,7 +357,7 @@ __attribute__((import_module("spacetime"),
 _buffer_alloc(const uint8_t* data, size_t data_len);
 
 #define ATTACH(name, target_name) \
-  mono_add_internal_call("SpacetimeDB.Bindings::" target_name, name)
+  mono_add_internal_call("SpacetimeDB.Runtime::" target_name, name)
 
 void mono_stdb_attach_bindings() {
   ATTACH(stdb_create_table, "CreateTable");
@@ -379,7 +379,7 @@ void mono_stdb_attach_bindings() {
 __attribute__((export_name("__describe_module__"))) Buffer
 __describe_module__() {
   MonoArray* bytes_arr = (MonoArray*)INVOKE_DOTNET_METHOD(
-      "SpacetimeSATS.dll", "SpacetimeDB.Module", "FFI", "DescribeModule", NULL);
+      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "DescribeModule", NULL);
   Bytes bytes = to_bytes(bytes_arr);
   return _buffer_alloc(bytes.ptr, bytes.len);
 }
@@ -393,7 +393,7 @@ __attribute__((export_name("__call_reducer__"))) Buffer __call_reducer__(
   MonoArray* args = stdb_buffer_consume(args_);
 
   MonoString* str = (MonoString*)INVOKE_DOTNET_METHOD(
-      "SpacetimeSATS.dll", "SpacetimeDB.Module", "FFI", "CallReducer", NULL,
+      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "CallReducer", NULL,
       &id, sender, &timestamp, args);
   if (str == NULL) {
     return (Buffer){.handle = INVALID_HANDLE};
@@ -403,6 +403,8 @@ __attribute__((export_name("__call_reducer__"))) Buffer __call_reducer__(
   free(cstr);
   return buf;
 }
+
+// Shims to avoid dependency on WASI in the generated Wasm file.
 
 #include <stdlib.h>
 #include <wasi/api.h>

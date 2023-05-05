@@ -4,10 +4,11 @@
     <TargetFrameworks>netstandard2.0;net7.0</TargetFrameworks>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
+    <AssemblyName>SpacetimeDB.Runtime</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Codegen/SpacetimeCodegen.csproj" OutputItemType="Analyzer" />
+    <ProjectReference Include="../Codegen/Codegen.csproj" OutputItemType="Analyzer" />
   </ItemGroup>
 
 </Project>

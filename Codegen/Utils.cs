@@ -5,21 +5,18 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Text;
 using System.Linq;
-using Microsoft.CodeAnalysis.Text;
 using System.Collections.Generic;
 using System;
 
 static class Utils
 {
-    internal static NameSyntax SymbolToName(ISymbol symbol)
+    internal static string SymbolToName(ISymbol symbol)
     {
-        return SyntaxFactory.ParseName(
-            symbol.ToDisplayString(
-                SymbolDisplayFormat.FullyQualifiedFormat
-                    .WithMemberOptions(SymbolDisplayMemberOptions.IncludeContainingType)
-                    .WithGenericsOptions(SymbolDisplayGenericsOptions.None)
-                    .WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)
-            )
+        return symbol.ToDisplayString(
+            SymbolDisplayFormat.FullyQualifiedFormat
+                .WithMemberOptions(SymbolDisplayMemberOptions.IncludeContainingType)
+                .WithGenericsOptions(SymbolDisplayGenericsOptions.None)
+                .WithGlobalNamespaceStyle(SymbolDisplayGlobalNamespaceStyle.Omitted)
         );
     }
 

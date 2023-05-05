@@ -1,4 +1,4 @@
-namespace SpacetimeDB;
+namespace SpacetimeDB.Codegen;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -8,7 +8,7 @@ using System.Linq;
 using static Utils;
 
 [Generator]
-public class SpacetimeModuleGenerator : IIncrementalGenerator
+public class Module : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -62,8 +62,7 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                 {
                     Scope = new Scope(table),
                     Name = table.Identifier.Text,
-                    FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(table)!)
-                        .ToString(),
+                    FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(table)!),
                     Attrs = attrs
                 };
             }
@@ -75,13 +74,13 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                 {
                     var extensions = t.Scope.GenerateExtensions(
                         $@"
-                            private static Lazy<uint> tableId = new (() => SpacetimeDB.Bindings.GetTableId(nameof({t.Name})));
+                            private static Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
-                                new SpacetimeDB.Bindings.RawTableIter(tableId.Value)
+                                new SpacetimeDB.Runtime.RawTableIter(tableId.Value)
                                 .Select(GetSatsTypeInfo().ReadBytes);
 
-                            public void Insert() => SpacetimeDB.Bindings.Insert(
+                            public void Insert() => SpacetimeDB.Runtime.Insert(
                                 tableId.Value,
                                 GetSatsTypeInfo().ToBytes(this)
                             );
@@ -97,9 +96,9 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
             .Select(
                 (t, ct) =>
                     $@"
-                module.Add(new SpacetimeDB.Module.TableDef(
+                FFI.RegisterTable(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
-                    module.AddType({t.FullName}.GetSatsTypeInfo().algebraicType),
+                    FFI.RegisterType({t.FullName}.GetSatsTypeInfo().algebraicType),
                     new SpacetimeDB.Module.ColumnIndexAttributeKind[] {{ {string.Join(", ", t.Attrs)} }},
                     new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
@@ -124,7 +123,7 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                     return new
                     {
                         Name = method.Name,
-                        FullName = SymbolToName(method).ToString(),
+                        FullName = SymbolToName(method),
                         Args = method.Parameters.Select(p => (p.Name, p.Type)).ToArray(),
                     };
                 }
@@ -166,7 +165,7 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                     $@"
             using SpacetimeDB.Module;
             using System.Runtime.CompilerServices;
-            using static SpacetimeDB.Bindings;
+            using static SpacetimeDB.Runtime;
 
             static class ModuleRegistration {{
                 {string.Join("\n", reducers.Select(r => r.Class))}
@@ -175,7 +174,6 @@ public class SpacetimeModuleGenerator : IIncrementalGenerator
                 // [ModuleInitializer]
                 public static void Main() {{
                     {string.Join("\n", reducers.Select(r => $"FFI.RegisterReducer(new {r.Name}());"))}
-                    var module = FFI.Module;
                     {string.Join("\n", addTables)}
                 }}
 #pragma warning restore CA2255

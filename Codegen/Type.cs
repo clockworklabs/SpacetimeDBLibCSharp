@@ -1,4 +1,4 @@
-namespace SpacetimeDB;
+namespace SpacetimeDB.Codegen;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -18,7 +18,7 @@ struct VariableDeclaration
 }
 
 [Generator]
-public class SpacetimeTypeGenerator : IIncrementalGenerator
+public class Type : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
@@ -89,8 +89,7 @@ public class SpacetimeTypeGenerator : IIncrementalGenerator
                     return new
                     {
                         Scope = new Scope(type),
-                        FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(type, ct)!)
-                            .ToString(),
+                        FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(type, ct)!),
                         GenericName = $"{type.Identifier}{type.TypeParameterList}",
                         IsTaggedEnum = taggedEnumVariants is not null,
                         TypeParams = type.TypeParameterList?.Parameters

@@ -1,0 +1,33 @@
+# SpacetimeDB.Codegen
+
+This project contains Roslyn [incremental source generators](https://github.com/dotnet/roslyn/blob/main/docs/features/incremental-generators.md) that augment types and tables with static methods for self-describing and registration. They look for different attributes to know which types to augment:
+
+- `[SpacetimeDB.Type]` - generates a `GetSatsTypeInfo()` static method that registers this type with the runtime and returns a `TypeInfo` object. It supports only `struct`s for now to explicitly forbid infinitely recursive types and to make the implementation simpler, as it doesn't need to deal with type references - each table is registered as an entirely self-contained type together with its nested structs if any. This is unlikely to be a problem in common scenarios, but it will be optimised in the future.
+
+  It also supports emulation of tagged enums in C#. For that, the struct needs to inherit a marker interface `SpacetimeDB.TaggedEnum<Variants>` where `Variants` is a named tuple of all possible variants, e.g.:
+
+  ```csharp
+  [SpacetimeDB.Type]
+  partial struct Option<T> : SpacetimeDB.TaggedEnum<(T Some, Unit None)> { }
+  ```
+
+  will generate properties `bool IsSome`, `bool IsNone`, `T Some`, and `Unit None` for the `Option<T>` type.
+
+  The `Some` and `None` accessors will throw an exception if the type is not in the corresponding state, so you must use `Is*` checks if you don't know which variant is currently active.
+
+  All of those properties are stored in a compact `byte` + `object` pair representation.
+
+- `[SpacetimeDB.Table]` - generates code to register this table in the `FFI` upon startup. It expects that the table is tagged with `[SpacetimeDB.Type]` as well.
+
+  The fields can be marked with `[SpacetimeDB.ColumnIndex]` and those will be detected by the codegen and passed on to the runtime as well. Example:
+
+  ```csharp
+  [SpacetimeDB.Table]
+  [SpacetimeDB.Type]
+  public partial struct Person
+  {
+      [SpacetimeDB.ColumnIndex(ColumnIndexAttributeKind.Identity)]
+      public int Id;
+      public string Name;
+  }
+  ```

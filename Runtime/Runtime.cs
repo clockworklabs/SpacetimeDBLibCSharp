@@ -5,7 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-public static class Bindings
+public static class Runtime
 {
     private static void ThrowForResult(ushort result)
     {

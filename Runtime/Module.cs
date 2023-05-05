@@ -28,7 +28,7 @@ public partial struct IndexDef
     IndexTypeWrapper Type;
     byte[] ColumnIds;
 
-    public IndexDef(string name, Bindings.IndexType type, byte[] columnIds)
+    public IndexDef(string name, Runtime.IndexType type, byte[] columnIds)
     {
         Name = name;
         Type = new IndexTypeWrapper(type);
@@ -151,9 +151,9 @@ public struct ColumnIndexAttributeWrapper
 
 public struct IndexTypeWrapper
 {
-    public Bindings.IndexType Type;
+    public Runtime.IndexType Type;
 
-    public IndexTypeWrapper(Bindings.IndexType type)
+    public IndexTypeWrapper(Runtime.IndexType type)
     {
         Type = type;
     }
@@ -164,7 +164,7 @@ public struct IndexTypeWrapper
 
         return new TypeInfo<IndexTypeWrapper>(
             inner.algebraicType,
-            (reader) => new IndexTypeWrapper((Bindings.IndexType)inner.read(reader)),
+            (reader) => new IndexTypeWrapper((Runtime.IndexType)inner.read(reader)),
             (writer, value) => inner.write(writer, (byte)value.Type)
         );
     }
@@ -178,8 +178,9 @@ public interface IReducer
 
 public static class FFI
 {
-    public readonly static List<IReducer> Reducers = new();
-    public static ModuleDef Module = new();
+    private readonly static List<IReducer> Reducers = new();
+    private static ModuleDef Module = new();
+    private static Dictionary<System.Type, object> registeredTypes = new();
 
     public static void RegisterReducer(IReducer reducer)
     {
@@ -187,12 +188,15 @@ public static class FFI
         Module.Add(reducer.MakeReducerDef());
     }
 
-    public static byte[] DescribeModule()
-    {
-        return ModuleDef.GetSatsTypeInfo().ToBytes(Module);
-    }
+    public static void RegisterTable(TableDef table) => Module.Add(table);
 
-    static string? CallReducer(uint id, byte[] sender_identity, ulong timestamp, byte[] args)
+    public static AlgebraicTypeRef RegisterType(AlgebraicType type) => Module.AddType(type);
+
+    // Note: this is accessed by C bindings.
+    private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(Module);
+
+    // Note: this is accessed by C bindings.
+    private static string? CallReducer(uint id, byte[] sender_identity, ulong timestamp, byte[] args)
     {
         try
         {
