@@ -25,13 +25,13 @@ partial struct Typespace
 public partial struct IndexDef
 {
     string Name;
-    IndexTypeWrapper Type;
+    Runtime.IndexType Type;
     byte[] ColumnIds;
 
     public IndexDef(string name, Runtime.IndexType type, byte[] columnIds)
     {
         Name = name;
-        Type = new IndexTypeWrapper(type);
+        Type = type;
         ColumnIds = columnIds;
     }
 }
@@ -41,7 +41,7 @@ public partial struct TableDef
 {
     string Name;
     AlgebraicTypeRef Data;
-    ColumnIndexAttributeWrapper[] ColumnAttrs;
+    ColumnIndexAttributeKind[] ColumnAttrs;
     IndexDef[] Indices;
 
     public TableDef(
@@ -53,7 +53,7 @@ public partial struct TableDef
     {
         Name = name;
         Data = type;
-        ColumnAttrs = columnAttrs.Select(a => new ColumnIndexAttributeWrapper(a)).ToArray();
+        ColumnAttrs = columnAttrs;
         Indices = indices;
     }
 }
@@ -109,7 +109,6 @@ public partial struct ModuleDef
     // TODO: support complex named types (aliases).
 }
 
-// [SpacetimeDB.Type] - TODO: support regular enums.
 public enum ColumnIndexAttributeKind : byte
 {
     UnSet = 0,
@@ -125,49 +124,6 @@ public enum ColumnIndexAttributeKind : byte
 
     /// Generate the next [Sequence]
     AutoInc = 4,
-}
-
-public struct ColumnIndexAttributeWrapper
-{
-    public ColumnIndexAttributeKind Attribute;
-
-    public ColumnIndexAttributeWrapper(ColumnIndexAttributeKind attribute)
-    {
-        Attribute = attribute;
-    }
-
-    public static TypeInfo<ColumnIndexAttributeWrapper> GetSatsTypeInfo()
-    {
-        var inner = BuiltinType.U8TypeInfo;
-
-        return new TypeInfo<ColumnIndexAttributeWrapper>(
-            inner.algebraicType,
-            (reader) =>
-                new ColumnIndexAttributeWrapper((ColumnIndexAttributeKind)inner.read(reader)),
-            (writer, value) => inner.write(writer, (byte)value.Attribute)
-        );
-    }
-}
-
-public struct IndexTypeWrapper
-{
-    public Runtime.IndexType Type;
-
-    public IndexTypeWrapper(Runtime.IndexType type)
-    {
-        Type = type;
-    }
-
-    public static TypeInfo<IndexTypeWrapper> GetSatsTypeInfo()
-    {
-        var inner = BuiltinType.U8TypeInfo;
-
-        return new TypeInfo<IndexTypeWrapper>(
-            inner.algebraicType,
-            (reader) => new IndexTypeWrapper((Runtime.IndexType)inner.read(reader)),
-            (writer, value) => inner.write(writer, (byte)value.Type)
-        );
-    }
 }
 
 public interface IReducer

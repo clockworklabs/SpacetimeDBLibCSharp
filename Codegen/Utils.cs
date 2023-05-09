@@ -67,6 +67,7 @@ static class Utils
                         => "SpacetimeDB.SATS.BuiltinType.I128TypeInfo",
                     SpecialType.None when type.ToString() == "System.UInt128"
                         => "SpacetimeDB.SATS.BuiltinType.U128TypeInfo",
+                    SpecialType.None when namedType.EnumUnderlyingType is not null => $"SpacetimeDB.SATS.BuiltinType.MakeEnum<{type}, {namedType.EnumUnderlyingType}>({GetTypeInfo(namedType.EnumUnderlyingType)})",
                     SpecialType.None
                         => $"{type.OriginalDefinition.ToString() switch
                     {

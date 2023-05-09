@@ -365,6 +365,19 @@ namespace SpacetimeDB.SATS
                     )
             );
         }
+
+        public static TypeInfo<T> MakeEnum<T, Base>(TypeInfo<Base> baseTypeInfo)
+            where T: struct, Enum, IConvertible
+            where Base: struct
+        {
+            return new TypeInfo<T>(
+                // unlike Rust enums, C# enums are really just wrappers around their underlying type
+                // that don't restrict set of allowed values, so we're following suit instead of using SumType
+                baseTypeInfo.algebraicType,
+                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.read(reader)),
+                (writer, value) => baseTypeInfo.write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+            );
+        }
     }
 
     [SpacetimeDB.Type]
