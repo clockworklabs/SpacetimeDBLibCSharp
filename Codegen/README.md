@@ -4,7 +4,9 @@ This project contains Roslyn [incremental source generators](https://github.com/
 
 - `[SpacetimeDB.Type]` - generates a `GetSatsTypeInfo()` static method that registers this type with the runtime and returns a `TypeInfo` object. It supports only `struct`s for now to explicitly forbid infinitely recursive types and to make the implementation simpler, as it doesn't need to deal with type references - each table is registered as an entirely self-contained type together with its nested structs if any. This is unlikely to be a problem in common scenarios, but it will be optimised in the future.
 
-  It also supports emulation of tagged enums in C#. For that, the struct needs to inherit a marker interface `SpacetimeDB.TaggedEnum<Variants>` where `Variants` is a named tuple of all possible variants, e.g.:
+  All the nested fields will be added to the product type. Because it's not possible to implement static extension methods on 3rd-party types (including built-ins) in C#, the codegen is responsible for manually routing different types to their `TypeInfo` descriptors. See various static `TypeInfo` properties and helper methods on `SpacetimeDB.SATS.BuiltinType` (`Runtime/AlgebraicType.cs`) and routing logic in `Utils.GetTypeInfo` (`Codegen/Utils.cs`) for more details.
+
+- `[SpacetimeDB.Type]` - also supports emulation of tagged enums in C#. For that, the struct needs to inherit a marker interface `SpacetimeDB.TaggedEnum<Variants>` where `Variants` is a named tuple of all possible variants, e.g.:
 
   ```csharp
   [SpacetimeDB.Type]
@@ -17,7 +19,7 @@ This project contains Roslyn [incremental source generators](https://github.com/
 
   All of those properties are stored in a compact `byte` + `object` pair representation.
 
-- `[SpacetimeDB.Table]` - generates code to register this table in the `FFI` upon startup. It expects that the table is tagged with `[SpacetimeDB.Type]` as well.
+- `[SpacetimeDB.Table]` - generates code to register this table in the `FFI` upon startup so that they can be enumerated by the `__describe_module__` FFI API. It expects that the table is tagged with `[SpacetimeDB.Type]` as well.
 
   The fields can be marked with `[SpacetimeDB.ColumnIndex]` and those will be detected by the codegen and passed on to the runtime as well. Example:
 
@@ -31,3 +33,5 @@ This project contains Roslyn [incremental source generators](https://github.com/
       public string Name;
   }
   ```
+
+- `[SpacetimeDB.Reducer]` - generates code to register a static function as a SpacetimeDB reducer in the `FFI` upon startup and creates a wrapper that will parse SATS binary blob into individual arguments and invoke the underlying function for the `__call_reducer__` FFI API.
