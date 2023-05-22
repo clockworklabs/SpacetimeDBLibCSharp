@@ -54,12 +54,15 @@ public class Module : IIncrementalGenerator
 
                         var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
 
-                        return f.Declaration.Variables.Select(v => (
-                            Name: v.Identifier.Text,
-                            Type: SymbolToName(type),
-                            TypeInfo: GetTypeInfo(type),
-                            IndexKind: attrVariantName
-                        ));
+                        return f.Declaration.Variables.Select(
+                            v =>
+                                (
+                                    Name: v.Identifier.Text,
+                                    Type: SymbolToName(type),
+                                    TypeInfo: GetTypeInfo(type),
+                                    IndexKind: attrVariantName
+                                )
+                        );
                     })
                     .ToArray();
 
@@ -77,7 +80,8 @@ public class Module : IIncrementalGenerator
             .Select(
                 (t, ct) =>
                 {
-                    var extensions = $@"
+                    var extensions =
+                        $@"
                             private static Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
@@ -92,8 +96,10 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity") {
-                            extensions += $@"
+                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity")
+                        {
+                            extensions +=
+                                $@"
                                     public static {t.Name}? FindBy{f.Name}({f.Type} {f.Name}) {{
                                         var raw = SpacetimeDB.Runtime.SeekEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}));
                                         return raw.Length == 0 ? null : GetSatsTypeInfo().ReadBytes(raw);
@@ -105,14 +111,19 @@ public class Module : IIncrementalGenerator
                                     public static void UpdateBy{f.Name}({f.Type} {f.Name}, {t.Name} value) =>
                                         SpacetimeDB.Runtime.UpdateEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
                                 ";
-                        } else {
+                        }
+                        else
+                        {
                             // TODO: add extensions for non-unique fields.
                             // For now not adding as Rust does this filtering on Wasm side and
                             // users can already do that via normal LINQ methods anyway.
                         }
                     }
 
-                    return new KeyValuePair<string, string>(t.FullName, t.Scope.GenerateExtensions(extensions));
+                    return new KeyValuePair<string, string>(
+                        t.FullName,
+                        t.Scope.GenerateExtensions(extensions)
+                    );
                 }
             )
             .RegisterSourceOutputs(context);
