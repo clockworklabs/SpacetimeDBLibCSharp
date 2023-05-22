@@ -19,12 +19,12 @@ public class Module : IIncrementalGenerator
             {
                 var table = (TypeDeclarationSyntax)context.TargetNode;
 
-                var attrs = table.Members
+                var fields = table.Members
                     .OfType<FieldDeclarationSyntax>()
                     .Where(f => !f.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
                     .SelectMany(f =>
                     {
-                        var variantName =
+                        var attrVariantName =
                             f.AttributeLists
                                 .SelectMany(a => a.Attributes)
                                 .Where(
@@ -52,9 +52,14 @@ public class Module : IIncrementalGenerator
                                 )
                                 .SingleOrDefault() ?? "UnSet";
 
-                        var variant = $"SpacetimeDB.Module.ColumnIndexAttributeKind.{variantName}";
+                        var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
 
-                        return Enumerable.Repeat(variant, f.Declaration.Variables.Count);
+                        return f.Declaration.Variables.Select(v => (
+                            Name: v.Identifier.Text,
+                            Type: SymbolToName(type),
+                            TypeInfo: GetTypeInfo(type),
+                            IndexKind: attrVariantName
+                        ));
                     })
                     .ToArray();
 
@@ -63,7 +68,7 @@ public class Module : IIncrementalGenerator
                     Scope = new Scope(table),
                     Name = table.Identifier.Text,
                     FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(table)!),
-                    Attrs = attrs
+                    Fields = fields,
                 };
             }
         );
@@ -72,8 +77,7 @@ public class Module : IIncrementalGenerator
             .Select(
                 (t, ct) =>
                 {
-                    var extensions = t.Scope.GenerateExtensions(
-                        $@"
+                    var extensions = $@"
                             private static Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
@@ -84,10 +88,31 @@ public class Module : IIncrementalGenerator
                                 tableId.Value,
                                 GetSatsTypeInfo().ToBytes(this)
                             );
-                        "
-                    );
+                        ";
 
-                    return new KeyValuePair<string, string>(t.FullName, extensions);
+                    foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
+                    {
+                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity") {
+                            extensions += $@"
+                                    public static {t.Name}? FindBy{f.Name}({f.Type} {f.Name}) {{
+                                        var raw = SpacetimeDB.Runtime.SeekEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}));
+                                        return raw.Length == 0 ? null : GetSatsTypeInfo().ReadBytes(raw);
+                                    }}
+
+                                    public static bool DeleteBy{f.Name}({f.Type} {f.Name}) =>
+                                        SpacetimeDB.Runtime.DeleteEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name})) > 0;
+
+                                    public static void UpdateBy{f.Name}({f.Type} {f.Name}, {t.Name} value) =>
+                                        SpacetimeDB.Runtime.UpdateEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
+                                ";
+                        } else {
+                            // TODO: add extensions for non-unique fields.
+                            // For now not adding as Rust does this filtering on Wasm side and
+                            // users can already do that via normal LINQ methods anyway.
+                        }
+                    }
+
+                    return new KeyValuePair<string, string>(t.FullName, t.Scope.GenerateExtensions(extensions));
                 }
             )
             .RegisterSourceOutputs(context);
@@ -99,7 +124,7 @@ public class Module : IIncrementalGenerator
                 FFI.RegisterTable(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
                     FFI.RegisterType({t.FullName}.GetSatsTypeInfo().algebraicType),
-                    new SpacetimeDB.Module.ColumnIndexAttributeKind[] {{ {string.Join(", ", t.Attrs)} }},
+                    new SpacetimeDB.Module.ColumnIndexAttributeKind[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.ColumnIndexAttributeKind.{f.IndexKind}"))} }},
                     new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
             "

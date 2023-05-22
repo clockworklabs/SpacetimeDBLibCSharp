@@ -47,6 +47,17 @@ public static class Runtime
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern uint DeleteEq(uint tableId, uint colId, byte[] value);
 
+    public static bool UpdateEq(uint tableId, uint colId, byte[] value, byte[] row)
+    {
+        // Just like in Rust bindings, updating is just deleting and inserting for now.
+        if (DeleteEq(tableId, colId, value) > 0) {
+            Insert(tableId, row);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern uint DeleteRange(
         uint tableId,
