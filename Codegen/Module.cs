@@ -54,6 +54,30 @@ public class Module : IIncrementalGenerator
 
                         var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
 
+                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc") {
+                            var isValidForAutoInc = type.SpecialType switch {
+                                SpecialType.System_Byte or
+                                SpecialType.System_SByte or
+                                SpecialType.System_Int16 or
+                                SpecialType.System_UInt16 or
+                                SpecialType.System_Int32 or
+                                SpecialType.System_UInt32 or
+                                SpecialType.System_Int64 or
+                                SpecialType.System_UInt64 => true,
+                                SpecialType.None => type.ToString() switch {
+                                    "System.Int128" or "System.UInt128" => true,
+                                    _ => false
+                                },
+                                _ => false
+                            };
+
+                            if (!isValidForAutoInc) {
+                                throw new System.Exception(
+                                    $"Type {type} is not valid for AutoInc or Identity as it's not an integer."
+                                );
+                            }
+                        }
+
                         return f.Declaration.Variables.Select(
                             v =>
                                 (
