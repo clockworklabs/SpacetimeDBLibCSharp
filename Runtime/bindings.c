@@ -73,28 +73,28 @@ static void free_string(String span) {
 
 static MonoArray* stdb_buffer_consume(Buffer buf);
 
-__attribute__((import_module("spacetime"),
-               import_name("_create_table"))) extern uint16_t
-_create_table(const char* name,
-              size_t name_len,
-              const uint8_t* schema,
-              size_t schema_len,
-              uint32_t* out);
+// __attribute__((import_module("spacetime"),
+//                import_name("_create_table"))) extern uint16_t
+// _create_table(const char* name,
+//               size_t name_len,
+//               const uint8_t* schema,
+//               size_t schema_len,
+//               uint32_t* out);
 
-static uint32_t stdb_create_table(MonoString* name_, MonoArray* schema_) {
-  String name = to_string(name_);
-  Bytes schema = to_bytes(schema_);
+// static uint32_t stdb_create_table(MonoString* name_, MonoArray* schema_) {
+//   String name = to_string(name_);
+//   Bytes schema = to_bytes(schema_);
 
-  uint32_t out;
-  uint16_t result =
-      _create_table(name.ptr, name.len, schema.ptr, schema.len, &out);
+//   uint32_t out;
+//   uint16_t result =
+//       _create_table(name.ptr, name.len, schema.ptr, schema.len, &out);
 
-  free_string(name);
+//   free_string(name);
 
-  check_result(result);
+//   check_result(result);
 
-  return out;
-}
+//   return out;
+// }
 
 __attribute__((import_module("spacetime"),
                import_name("_get_table_id"))) extern uint16_t
@@ -170,29 +170,29 @@ static void stdb_insert(uint32_t table_id, MonoArray* row_) {
   check_result(result);
 }
 
-__attribute__((import_module("spacetime"),
-               import_name("_delete_pk"))) extern uint16_t
-_delete_pk(uint32_t table_id, const uint8_t* pk, size_t pk_len);
+// __attribute__((import_module("spacetime"),
+//                import_name("_delete_pk"))) extern uint16_t
+// _delete_pk(uint32_t table_id, const uint8_t* pk, size_t pk_len);
 
-static void stdb_delete_pk(uint32_t table_id, MonoArray* pk_) {
-  Bytes pk = to_bytes(pk_);
+// static void stdb_delete_pk(uint32_t table_id, MonoArray* pk_) {
+//   Bytes pk = to_bytes(pk_);
 
-  uint16_t result = _delete_pk(table_id, pk.ptr, pk.len);
+//   uint16_t result = _delete_pk(table_id, pk.ptr, pk.len);
 
-  check_result(result);
-}
+//   check_result(result);
+// }
 
-__attribute__((import_module("spacetime"),
-               import_name("_delete_value"))) extern uint16_t
-_delete_value(uint32_t table_id, const uint8_t* row, size_t row_len);
+// __attribute__((import_module("spacetime"),
+//                import_name("_delete_value"))) extern uint16_t
+// _delete_value(uint32_t table_id, const uint8_t* row, size_t row_len);
 
-static void stdb_delete_value(uint32_t table_id, MonoArray* row_) {
-  Bytes row = to_bytes(row_);
+// static void stdb_delete_value(uint32_t table_id, MonoArray* row_) {
+//   Bytes row = to_bytes(row_);
 
-  uint16_t result = _delete_value(table_id, row.ptr, row.len);
+//   uint16_t result = _delete_value(table_id, row.ptr, row.len);
 
-  check_result(result);
-}
+//   check_result(result);
+// }
 
 __attribute__((import_module("spacetime"),
                import_name("_delete_eq"))) extern uint16_t
@@ -215,32 +215,32 @@ static uint32_t stdb_delete_eq(uint32_t table_id,
   return out;
 }
 
-__attribute__((import_module("spacetime"),
-               import_name("_delete_range"))) extern uint16_t
-_delete_range(uint32_t table_id,
-              uint32_t col_id,
-              const uint8_t* range_start,
-              size_t range_start_len,
-              const uint8_t* range_end,
-              size_t range_end_len,
-              uint32_t* out);
+// __attribute__((import_module("spacetime"),
+//                import_name("_delete_range"))) extern uint16_t
+// _delete_range(uint32_t table_id,
+//               uint32_t col_id,
+//               const uint8_t* range_start,
+//               size_t range_start_len,
+//               const uint8_t* range_end,
+//               size_t range_end_len,
+//               uint32_t* out);
 
-static uint32_t stdb_delete_range(uint32_t table_id,
-                                  uint32_t col_id,
-                                  MonoArray* range_start_,
-                                  MonoArray* range_end_) {
-  Bytes range_start = to_bytes(range_start_);
-  Bytes range_end = to_bytes(range_end_);
+// static uint32_t stdb_delete_range(uint32_t table_id,
+//                                   uint32_t col_id,
+//                                   MonoArray* range_start_,
+//                                   MonoArray* range_end_) {
+//   Bytes range_start = to_bytes(range_start_);
+//   Bytes range_end = to_bytes(range_end_);
 
-  uint32_t out;
-  uint16_t result =
-      _delete_range(table_id, col_id, range_start.ptr, range_start.len,
-                    range_end.ptr, range_end.len, &out);
+//   uint32_t out;
+//   uint16_t result =
+//       _delete_range(table_id, col_id, range_start.ptr, range_start.len,
+//                     range_end.ptr, range_end.len, &out);
 
-  check_result(result);
+//   check_result(result);
 
-  return out;
-}
+//   return out;
+// }
 
 __attribute__((import_module("spacetime"),
                import_name("_iter_start"))) extern uint16_t
@@ -360,15 +360,15 @@ _buffer_alloc(const uint8_t* data, size_t data_len);
   mono_add_internal_call("SpacetimeDB.Runtime::" target_name, name)
 
 void mono_stdb_attach_bindings() {
-  ATTACH(stdb_create_table, "CreateTable");
+  // ATTACH(stdb_create_table, "CreateTable");
   ATTACH(stdb_get_table_id, "GetTableId");
   ATTACH(stdb_create_index, "CreateIndex");
   ATTACH(stdb_seek_eq, "SeekEq");
   ATTACH(stdb_insert, "Insert");
-  ATTACH(stdb_delete_pk, "DeletePk");
-  ATTACH(stdb_delete_value, "DeleteValue");
+  // ATTACH(stdb_delete_pk, "DeletePk");
+  // ATTACH(stdb_delete_value, "DeleteValue");
   ATTACH(stdb_delete_eq, "DeleteEq");
-  ATTACH(stdb_delete_range, "DeleteRange");
+  // ATTACH(stdb_delete_range, "DeleteRange");
   ATTACH(stdb_iter_start, "BufferIterStart");
   ATTACH(stdb_iter_next, "BufferIterNext");
   ATTACH(stdb_iter_drop, "BufferIterDrop");
@@ -379,9 +379,20 @@ void mono_stdb_attach_bindings() {
 __attribute__((export_name("__describe_module__"))) Buffer
 __describe_module__() {
   MonoArray* bytes_arr = (MonoArray*)INVOKE_DOTNET_METHOD(
-      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "DescribeModule", NULL);
+      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "DescribeModule",
+      NULL);
   Bytes bytes = to_bytes(bytes_arr);
   return _buffer_alloc(bytes.ptr, bytes.len);
+}
+
+static Buffer return_result_buf(MonoObject* str) {
+  if (str == NULL) {
+    return (Buffer){.handle = INVALID_HANDLE};
+  }
+  char* cstr = mono_string_to_utf8((MonoString*)str);
+  Buffer buf = _buffer_alloc((uint8_t*)cstr, strlen(cstr));
+  free(cstr);
+  return buf;
 }
 
 __attribute__((export_name("__call_reducer__"))) Buffer __call_reducer__(
@@ -392,16 +403,27 @@ __attribute__((export_name("__call_reducer__"))) Buffer __call_reducer__(
   MonoArray* sender = stdb_buffer_consume(sender_);
   MonoArray* args = stdb_buffer_consume(args_);
 
-  MonoString* str = (MonoString*)INVOKE_DOTNET_METHOD(
-      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "CallReducer", NULL,
-      &id, sender, &timestamp, args);
-  if (str == NULL) {
-    return (Buffer){.handle = INVALID_HANDLE};
-  }
-  char* cstr = mono_string_to_utf8(str);
-  Buffer buf = _buffer_alloc((uint8_t*)cstr, strlen(cstr));
-  free(cstr);
-  return buf;
+  return return_result_buf(INVOKE_DOTNET_METHOD(
+      "SpacetimeDB.Runtime.dll", "SpacetimeDB.Module", "FFI", "CallReducer",
+      NULL, &id, sender, &timestamp, args));
+}
+
+__attribute__((export_name("__identity_connected__"))) Buffer
+__identity_connected__(Buffer sender_, uint64_t timestamp) {
+  MonoArray* sender = stdb_buffer_consume(sender_);
+
+  return return_result_buf(
+      INVOKE_DOTNET_METHOD("SpacetimeDB.Runtime.dll", "SpacetimeDB", "Runtime",
+                           "IdentityConnected", NULL, sender, &timestamp));
+}
+
+__attribute__((export_name("__identity_disconnected__"))) Buffer
+__identity_disconnected__(Buffer sender_, uint64_t timestamp) {
+  MonoArray* sender = stdb_buffer_consume(sender_);
+
+  return return_result_buf(
+      INVOKE_DOTNET_METHOD("SpacetimeDB.Runtime.dll", "SpacetimeDB", "Runtime",
+                           "IdentityDisconnected", NULL, sender, &timestamp));
 }
 
 // Shims to avoid dependency on WASI in the generated Wasm file.
@@ -708,8 +730,8 @@ int32_t __imported_wasi_thread_spawn(int32_t arg0) {
 
 void _start();
 
-__attribute__((export_name("__preinit__10_init_csharp")))
-void __preinit__10_init_csharp() {
+__attribute__((export_name("__preinit__10_init_csharp"))) void
+__preinit__10_init_csharp() {
   _start();
 }
 

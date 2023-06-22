@@ -196,7 +196,12 @@ public static class FFI
     private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(Module);
 
     // Note: this is accessed by C bindings.
-    private static string? CallReducer(uint id, byte[] sender_identity, ulong timestamp, byte[] args)
+    private static string? CallReducer(
+        uint id,
+        byte[] sender_identity,
+        ulong timestamp,
+        byte[] args
+    )
     {
         try
         {

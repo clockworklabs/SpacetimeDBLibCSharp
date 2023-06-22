@@ -50,10 +50,13 @@ public static class Runtime
     public static bool UpdateEq(uint tableId, uint colId, byte[] value, byte[] row)
     {
         // Just like in Rust bindings, updating is just deleting and inserting for now.
-        if (DeleteEq(tableId, colId, value) > 0) {
+        if (DeleteEq(tableId, colId, value) > 0)
+        {
             Insert(tableId, row);
             return true;
-        } else {
+        }
+        else
+        {
             return false;
         }
     }
@@ -162,4 +165,47 @@ public static class Runtime
         [CallerFilePath] string filename = "",
         [CallerLineNumber] uint lineNumber = 0
     );
+
+    public class DbEventArgs : EventArgs
+    {
+        public readonly byte[] SenderIdentity;
+        public readonly ulong Timestamp;
+
+        public DbEventArgs(byte[] senderIdentity, ulong timestamp)
+        {
+            SenderIdentity = senderIdentity;
+            Timestamp = timestamp;
+        }
+    }
+
+    public static event Action<DbEventArgs>? OnConnect;
+    public static event Action<DbEventArgs>? OnDisconnect;
+
+    // Note: this is accessed by C bindings.
+    private static string? IdentityConnected(byte[] sender_identity, ulong timestamp)
+    {
+        try
+        {
+            OnConnect?.Invoke(new(sender_identity, timestamp));
+            return null;
+        }
+        catch (Exception e)
+        {
+            return e.ToString();
+        }
+    }
+
+    // Note: this is accessed by C bindings.
+    private static string? IdentityDisconnected(byte[] sender_identity, ulong timestamp)
+    {
+        try
+        {
+            OnDisconnect?.Invoke(new(sender_identity, timestamp));
+            return null;
+        }
+        catch (Exception e)
+        {
+            return e.ToString();
+        }
+    }
 }
