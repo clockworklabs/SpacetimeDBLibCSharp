@@ -168,13 +168,14 @@ public static class Runtime
 
     public class DbEventArgs : EventArgs
     {
-        public readonly byte[] SenderIdentity;
-        public readonly ulong Timestamp;
+        public readonly byte[] Sender;
+        // public readonly DateTimeOffset Time;
 
-        public DbEventArgs(byte[] senderIdentity, ulong timestamp)
+        public DbEventArgs(byte[] senderIdentity, ulong timestamp_us)
         {
-            SenderIdentity = senderIdentity;
-            Timestamp = timestamp;
+            Sender = senderIdentity;
+            // timestamp is in microseconds; the easiest way to convert those w/o losing precision is to get Unix origin and add ticks which are 0.1ms each.
+            // Time = DateTimeOffset.UnixEpoch;//.AddTicks(10 * (long)timestamp_us);
         }
     }
 
@@ -207,5 +208,26 @@ public static class Runtime
         {
             return e.ToString();
         }
+    }
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private extern static void ScheduleReducer(
+        string name,
+        byte[] args,
+        ulong time,
+        out ulong handle
+    );
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
+    private extern static void CancelReducer(ulong handle);
+
+    public class ScheduleToken
+    {
+        private readonly ulong handle;
+
+        public ScheduleToken(string name, byte[] args, DateTimeOffset time) =>
+            ScheduleReducer(name, args, (ulong)(time - DateTimeOffset.UnixEpoch).Ticks, out handle);
+
+        public void Cancel() => CancelReducer(handle);
     }
 }

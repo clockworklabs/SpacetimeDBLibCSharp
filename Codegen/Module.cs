@@ -54,24 +54,30 @@ public class Module : IIncrementalGenerator
 
                         var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
 
-                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc") {
-                            var isValidForAutoInc = type.SpecialType switch {
-                                SpecialType.System_Byte or
-                                SpecialType.System_SByte or
-                                SpecialType.System_Int16 or
-                                SpecialType.System_UInt16 or
-                                SpecialType.System_Int32 or
-                                SpecialType.System_UInt32 or
-                                SpecialType.System_Int64 or
-                                SpecialType.System_UInt64 => true,
-                                SpecialType.None => type.ToString() switch {
-                                    "System.Int128" or "System.UInt128" => true,
-                                    _ => false
-                                },
+                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc")
+                        {
+                            var isValidForAutoInc = type.SpecialType switch
+                            {
+                                SpecialType.System_Byte
+                                or SpecialType.System_SByte
+                                or SpecialType.System_Int16
+                                or SpecialType.System_UInt16
+                                or SpecialType.System_Int32
+                                or SpecialType.System_UInt32
+                                or SpecialType.System_Int64
+                                or SpecialType.System_UInt64
+                                    => true,
+                                SpecialType.None
+                                    => type.ToString() switch
+                                    {
+                                        "System.Int128" or "System.UInt128" => true,
+                                        _ => false
+                                    },
                                 _ => false
                             };
 
-                            if (!isValidForAutoInc) {
+                            if (!isValidForAutoInc)
+                            {
                                 throw new System.Exception(
                                     $"Type {type} is not valid for AutoInc or Identity as it's not an integer."
                                 );
@@ -166,45 +172,47 @@ public class Module : IIncrementalGenerator
             )
             .Collect();
 
-        var reducers = context.SyntaxProvider
-            .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "SpacetimeDB.ReducerAttribute",
-                predicate: (node, ct) => true, // already covered by attribute restrictions
-                transform: (context, ct) =>
+        var reducers = context.SyntaxProvider.ForAttributeWithMetadataName(
+            fullyQualifiedMetadataName: "SpacetimeDB.ReducerAttribute",
+            predicate: (node, ct) => true, // already covered by attribute restrictions
+            transform: (context, ct) =>
+            {
+                var method = (IMethodSymbol)
+                    context.SemanticModel.GetDeclaredSymbol(context.TargetNode)!;
+
+                if (!method.ReturnsVoid)
                 {
-                    var method = (IMethodSymbol)
-                        context.SemanticModel.GetDeclaredSymbol(context.TargetNode)!;
-
-                    if (!method.ReturnsVoid)
-                    {
-                        throw new System.Exception($"Reducer {method} must return void");
-                    }
-
-                    return new
-                    {
-                        Name = method.Name,
-                        FullName = SymbolToName(method),
-                        Args = method.Parameters.Select(p => (p.Name, p.Type)).ToArray(),
-                    };
+                    throw new System.Exception($"Reducer {method} must return void");
                 }
-            )
+
+                return new
+                {
+                    Name = method.Name,
+                    FullName = SymbolToName(method),
+                    Args = method.Parameters.Select(p => (p.Name, p.Type, IsDbEvent: p.Type.ToString() == "SpacetimeDB.Runtime.DbEventArgs")).ToArray(),
+                    Scope = new Scope((TypeDeclarationSyntax)context.TargetNode.Parent!)
+                };
+            }
+        );
+
+        var addReducers = reducers
             .Select(
                 (r, ct) =>
                     (
                         r.Name,
                         Class: $@"
                             class {r.Name}: IReducer {{
-                                {string.Join("\n", r.Args.Select(a => $"SpacetimeDB.SATS.TypeInfo<{a.Type}> {a.Name} = {GetTypeInfo(a.Type)};"))}
+                                {string.Join("\n", r.Args.Where(a => !a.IsDbEvent).Select(a => $"SpacetimeDB.SATS.TypeInfo<{a.Type}> {a.Name} = {GetTypeInfo(a.Type)};"))}
 
                                 SpacetimeDB.Module.ReducerDef IReducer.MakeReducerDef() {{
                                     return new (
                                         nameof({r.FullName})
-                                        {string.Join("", r.Args.Select(a => $",\nnew SpacetimeDB.SATS.ProductTypeElement(nameof({a.Name}), {a.Name}.algebraicType)"))}
+                                        {string.Join("", r.Args.Where(a => !a.IsDbEvent).Select(a => $",\nnew SpacetimeDB.SATS.ProductTypeElement(nameof({a.Name}), {a.Name}.algebraicType)"))}
                                     );
                                 }}
 
-                                void IReducer.Invoke(BinaryReader reader) {{
-                                    {r.FullName}({string.Join(", ", r.Args.Select(a => $"{a.Name}.read(reader)"))});
+                                void IReducer.Invoke(BinaryReader reader, SpacetimeDB.Runtime.DbEventArgs dbEvent) {{
+                                    {r.FullName}({string.Join(", ", r.Args.Select(a => a.IsDbEvent ? "dbEvent" : $"{a.Name}.read(reader)"))});
                                 }}
                             }}
                         "
@@ -213,12 +221,12 @@ public class Module : IIncrementalGenerator
             .Collect();
 
         context.RegisterSourceOutput(
-            addTables.Combine(reducers),
+            addTables.Combine(addReducers),
             (context, tuple) =>
             {
                 var addTables = tuple.Left;
-                var reducers = tuple.Right;
-                if (addTables.IsEmpty && reducers.IsEmpty)
+                var addReducers = tuple.Right;
+                if (addTables.IsEmpty && addReducers.IsEmpty)
                     return;
                 context.AddSource(
                     "FFI.cs",
@@ -228,14 +236,14 @@ public class Module : IIncrementalGenerator
             using static SpacetimeDB.Runtime;
 
             static class ModuleRegistration {{
-                {string.Join("\n", reducers.Select(r => r.Class))}
+                {string.Join("\n", addReducers.Select(r => r.Class))}
 
 #pragma warning disable CA2255
                 // [ModuleInitializer] - doesn't work because assemblies are loaded lazily;
                 // might make use of it later down the line, but for now assume there is only one
                 // module so we can use `Main` instead.
                 public static void Main() {{
-                    {string.Join("\n", reducers.Select(r => $"FFI.RegisterReducer(new {r.Name}());"))}
+                    {string.Join("\n", addReducers.Select(r => $"FFI.RegisterReducer(new {r.Name}());"))}
                     {string.Join("\n", addTables)}
                 }}
 #pragma warning restore CA2255
@@ -244,5 +252,24 @@ public class Module : IIncrementalGenerator
                 );
             }
         );
+
+        reducers
+            .Select(
+                (r, ct) =>
+                    new KeyValuePair<string, string>(
+                        r.FullName,
+                        r.Scope.GenerateExtensions(
+                            $@"
+                            public static SpacetimeDB.Runtime.ScheduleToken Schedule{r.Name}(DateTimeOffset time{string.Join("", r.Args.Select(a => $", {a.Type} {a.Name}"))}) {{
+                                using var stream = new MemoryStream();
+                                using var writer = new BinaryWriter(stream);
+                                {string.Join("\n", r.Args.Where(a => !a.IsDbEvent).Select(a => $"{GetTypeInfo(a.Type)}.write(writer, {a.Name});"))}
+                                return new(""{r.Name}"", stream.ToArray(), time);
+                            }}
+                        "
+                        )
+                    )
+            )
+            .RegisterSourceOutputs(context);
     }
 }

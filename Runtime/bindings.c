@@ -43,6 +43,10 @@ typedef struct {
   uint32_t handle;
 } BufferIter;
 
+typedef struct {
+  uint64_t handle;
+} ScheduleToken;
+
 #define INVALID_HANDLE ((uint32_t)-1)
 
 typedef struct {
@@ -312,25 +316,32 @@ static void stdb_console_log(MonoString* text_,
 }
 
 __attribute__((import_module("spacetime"),
-               import_name("_schedule_reducer"))) extern uint16_t
+               import_name("_schedule_reducer"))) extern void
 _schedule_reducer(const char* name,
                   size_t name_len,
                   const uint8_t* args,
                   size_t args_len,
-                  uint64_t time);
+                  uint64_t time,
+                  ScheduleToken* out);
 
 static void stdb_schedule_reducer(MonoString* name_,
                                   MonoArray* args_,
-                                  uint64_t time) {
+                                  uint64_t time,
+                                  ScheduleToken* out) {
   String name = to_string(name_);
   Bytes args = to_bytes(args_);
 
-  uint16_t result =
-      _schedule_reducer(name.ptr, name.len, args.ptr, args.len, time);
+  _schedule_reducer(name.ptr, name.len, args.ptr, args.len, time, out);
 
   free_string(name);
+}
 
-  check_result(result);
+__attribute__((import_module("spacetime"),
+               import_name("_cancel_reducer"))) extern void
+_cancel_reducer(ScheduleToken token);
+
+static void stdb_cancel_reducer(ScheduleToken token) {
+  _cancel_reducer(token);
 }
 
 __attribute__((import_module("spacetime"),
@@ -373,7 +384,8 @@ void mono_stdb_attach_bindings() {
   ATTACH(stdb_iter_next, "BufferIterNext");
   ATTACH(stdb_iter_drop, "BufferIterDrop");
   ATTACH(stdb_console_log, "Log");
-  // ATTACH(stdb_schedule_reducer);
+  ATTACH(stdb_schedule_reducer, "ScheduleReducer");
+  ATTACH(stdb_cancel_reducer, "CancelReducer");
 }
 
 __attribute__((export_name("__describe_module__"))) Buffer

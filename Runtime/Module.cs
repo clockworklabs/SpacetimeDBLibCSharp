@@ -173,7 +173,7 @@ public struct IndexTypeWrapper
 public interface IReducer
 {
     SpacetimeDB.Module.ReducerDef MakeReducerDef();
-    void Invoke(System.IO.BinaryReader reader);
+    void Invoke(System.IO.BinaryReader reader, Runtime.DbEventArgs args);
 }
 
 public static class FFI
@@ -207,7 +207,7 @@ public static class FFI
         {
             using var stream = new MemoryStream(args);
             using var reader = new BinaryReader(stream);
-            Reducers[(int)id].Invoke(reader);
+            Reducers[(int)id].Invoke(reader, new(sender_identity, timestamp));
             if (stream.Position != stream.Length)
             {
                 throw new Exception("Extra bytes in the input");
