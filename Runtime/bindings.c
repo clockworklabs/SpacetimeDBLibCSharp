@@ -466,7 +466,8 @@ int32_t __imported_wasi_snapshot_preview1_environ_sizes_get(int32_t arg0,
 }
 
 int32_t __imported_wasi_snapshot_preview1_clock_res_get(int32_t arg0,
-                                                        int32_t arg1) {
+                                                        uint64_t *timestamp) {
+    *timestamp = 1;
   return 0;
 }
 
