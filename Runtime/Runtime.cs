@@ -169,13 +169,13 @@ public static class Runtime
     public class DbEventArgs : EventArgs
     {
         public readonly byte[] Sender;
-        // public readonly DateTimeOffset Time;
+        public readonly DateTimeOffset Time;
 
         public DbEventArgs(byte[] senderIdentity, ulong timestamp_us)
         {
             Sender = senderIdentity;
             // timestamp is in microseconds; the easiest way to convert those w/o losing precision is to get Unix origin and add ticks which are 0.1ms each.
-            // Time = DateTimeOffset.UnixEpoch;//.AddTicks(10 * (long)timestamp_us);
+            Time = DateTimeOffset.UnixEpoch.AddTicks(10 * (long)timestamp_us);
         }
     }
 
