@@ -18,10 +18,10 @@ public interface TaggedEnum<Variants>
 [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
 public sealed class ColumnIndexAttribute : Attribute
 {
-    public ColumnIndexAttribute(ColumnIndexAttributeKind type)
+    public ColumnIndexAttribute(ColumnIndexKind type)
     {
         Type = type;
     }
 
-    public ColumnIndexAttributeKind Type { get; }
+    public ColumnIndexKind Type { get; }
 }

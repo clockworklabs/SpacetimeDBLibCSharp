@@ -41,7 +41,7 @@ public class Module : IIncrementalGenerator
                                             MemberAccessExpressionSyntax m
                                                 // Assume object part is already checked by compiler anyway.
                                                 => m.Name.Identifier.Text,
-                                            // In case someone did `using static SpacetimeDB.Module.ColumnIndexAttributeKind;`
+                                            // In case someone did `using static SpacetimeDB.Module.ColumnIndexKind;`
                                             IdentifierNameSyntax i => i.Identifier.Text,
                                             null => null,
                                             var expr
@@ -165,7 +165,7 @@ public class Module : IIncrementalGenerator
                 FFI.RegisterTable(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
                     FFI.RegisterType({t.FullName}.GetSatsTypeInfo().algebraicType),
-                    new SpacetimeDB.Module.ColumnIndexAttributeKind[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.ColumnIndexAttributeKind.{f.IndexKind}"))} }},
+                    new SpacetimeDB.Module.ColumnIndexKind[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.ColumnIndexKind.{f.IndexKind}"))} }},
                     new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
             "

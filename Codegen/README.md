@@ -30,7 +30,7 @@ This project contains Roslyn [incremental source generators](https://github.com/
   [SpacetimeDB.Type]
   public partial struct Person
   {
-      [SpacetimeDB.ColumnIndex(ColumnIndexAttributeKind.Identity)]
+      [SpacetimeDB.ColumnIndex(ColumnIndexKind.Identity)]
       public int Id;
       public string Name;
   }

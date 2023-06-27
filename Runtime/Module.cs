@@ -47,7 +47,7 @@ public partial struct TableDef
     public TableDef(
         string name,
         AlgebraicTypeRef type,
-        ColumnIndexAttributeKind[] columnAttrs,
+        ColumnIndexKind[] columnAttrs,
         IndexDef[] indices
     )
     {
@@ -110,7 +110,7 @@ public partial struct ModuleDef
 }
 
 // [SpacetimeDB.Type] - TODO: support regular enums.
-public enum ColumnIndexAttributeKind : byte
+public enum ColumnIndexKind : byte
 {
     UnSet = 0,
 
@@ -129,9 +129,9 @@ public enum ColumnIndexAttributeKind : byte
 
 public struct ColumnIndexAttributeWrapper
 {
-    public ColumnIndexAttributeKind Attribute;
+    public ColumnIndexKind Attribute;
 
-    public ColumnIndexAttributeWrapper(ColumnIndexAttributeKind attribute)
+    public ColumnIndexAttributeWrapper(ColumnIndexKind attribute)
     {
         Attribute = attribute;
     }
@@ -143,7 +143,7 @@ public struct ColumnIndexAttributeWrapper
         return new TypeInfo<ColumnIndexAttributeWrapper>(
             inner.algebraicType,
             (reader) =>
-                new ColumnIndexAttributeWrapper((ColumnIndexAttributeKind)inner.read(reader)),
+                new ColumnIndexAttributeWrapper((ColumnIndexKind)inner.read(reader)),
             (writer, value) => inner.write(writer, (byte)value.Attribute)
         );
     }
