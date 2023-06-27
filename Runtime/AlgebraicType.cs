@@ -365,6 +365,19 @@ namespace SpacetimeDB.SATS
                     )
             );
         }
+
+        public static TypeInfo<T> MakeEnum<T, Base>(TypeInfo<Base> baseTypeInfo)
+            where T: struct, Enum, IConvertible
+            where Base: struct
+        {
+            var unitType = Unit.GetSatsTypeInfo().algebraicType;
+
+            return new TypeInfo<T>(
+                new SumType { variants = Enum.GetNames(typeof(T)).Select(name => new SumTypeVariant(name, unitType)).ToList() },
+                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.read(reader)),
+                (writer, value) => baseTypeInfo.write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+            );
+        }
     }
 
     [SpacetimeDB.Type]

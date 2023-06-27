@@ -20,7 +20,7 @@ public sealed class ReducerAttribute : Attribute {
 [AttributeUsage(AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
 public sealed class TableAttribute : Attribute { }
 
-[AttributeUsage(AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false, AllowMultiple = false)]
 public sealed class TypeAttribute : Attribute { }
 
 public interface TaggedEnum<Variants>

@@ -68,6 +68,18 @@ static class Utils
                     SpecialType.None when type.ToString() == "System.UInt128"
                         => "SpacetimeDB.SATS.BuiltinType.U128TypeInfo",
                     SpecialType.None
+                        when namedType.EnumUnderlyingType is not null
+                            // check that enums also have [SpacetimeDB.Type]
+                            // we don't currently do anything special whether or not it exists but might in the future
+                            // so this requirement is mostly for future-proofing
+                            && type.GetAttributes()
+                                .Any(
+                                    a =>
+                                        a.AttributeClass?.ToDisplayString()
+                                        == "SpacetimeDB.TypeAttribute"
+                                )
+                        => $"SpacetimeDB.SATS.BuiltinType.MakeEnum<{type}, {namedType.EnumUnderlyingType}>({GetTypeInfo(namedType.EnumUnderlyingType)})",
+                    SpecialType.None
                         => $"{type.OriginalDefinition.ToString() switch
                     {
                         "System.Collections.Generic.List<T>" => "SpacetimeDB.SATS.BuiltinType.MakeList",
@@ -83,9 +95,10 @@ static class Utils
                         )
                 },
             IArrayTypeSymbol arrayType
-                => arrayType.ElementType is INamedTypeSymbol namedType && namedType.SpecialType == SpecialType.System_Byte
-                   ? "SpacetimeDB.SATS.BuiltinType.BytesTypeInfo"
-                   : $"SpacetimeDB.SATS.BuiltinType.MakeArray({GetTypeInfo(arrayType.ElementType)})",
+                => arrayType.ElementType is INamedTypeSymbol namedType
+                && namedType.SpecialType == SpecialType.System_Byte
+                    ? "SpacetimeDB.SATS.BuiltinType.BytesTypeInfo"
+                    : $"SpacetimeDB.SATS.BuiltinType.MakeArray({GetTypeInfo(arrayType.ElementType)})",
             _ => throw new InvalidOperationException($"Unsupported type {type}")
         };
     }

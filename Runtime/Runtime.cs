@@ -18,10 +18,11 @@ public static class Runtime
     [MethodImpl(MethodImplOptions.InternalCall)]
     public static extern uint GetTableId(string name);
 
+    [SpacetimeDB.Type]
     public enum IndexType : byte
     {
-        BTree = 0,
-        Hash = 1,
+        BTree,
+        Hash,
     }
 
     [MethodImpl(MethodImplOptions.InternalCall)]
