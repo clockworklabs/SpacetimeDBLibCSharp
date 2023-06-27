@@ -4,7 +4,18 @@ using System;
 using SpacetimeDB.Module;
 
 [AttributeUsage(AttributeTargets.Method, Inherited = false, AllowMultiple = false)]
-public sealed class ReducerAttribute : Attribute { }
+public sealed class ReducerAttribute : Attribute {
+    public ReducerAttribute(string? name = null)
+    {
+        Name = name;
+    }
+
+    public string? Name { get; set; }
+
+    // Special reserved reducer names.
+    public const string Init = "__init__";
+    public const string Update = "__update__";
+}
 
 [AttributeUsage(AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
 public sealed class TableAttribute : Attribute { }

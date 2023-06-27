@@ -127,6 +127,11 @@ public enum ColumnIndexKind : byte
     AutoInc = 4,
 }
 
+public static class ReducerKind {
+    public const string Init = "__init__";
+    public const string Update = "__update__";
+}
+
 public struct ColumnIndexAttributeWrapper
 {
     public ColumnIndexKind Attribute;

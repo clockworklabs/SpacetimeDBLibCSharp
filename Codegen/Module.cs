@@ -185,9 +185,15 @@ public class Module : IIncrementalGenerator
                     throw new System.Exception($"Reducer {method} must return void");
                 }
 
+                var exportName =
+                    (string?)context.Attributes
+                        .SingleOrDefault()
+                        ?.ConstructorArguments.SingleOrDefault().Value;
+
                 return new
                 {
                     Name = method.Name,
+                    ExportName = exportName ?? method.Name,
                     FullName = SymbolToName(method),
                     Args = method.Parameters.Select(p => (p.Name, p.Type, IsDbEvent: p.Type.ToString() == "SpacetimeDB.Runtime.DbEventArgs")).ToArray(),
                     Scope = new Scope((TypeDeclarationSyntax)context.TargetNode.Parent!)
@@ -206,7 +212,7 @@ public class Module : IIncrementalGenerator
 
                                 SpacetimeDB.Module.ReducerDef IReducer.MakeReducerDef() {{
                                     return new (
-                                        nameof({r.FullName})
+                                        ""{r.ExportName}""
                                         {string.Join("", r.Args.Where(a => !a.IsDbEvent).Select(a => $",\nnew SpacetimeDB.SATS.ProductTypeElement(nameof({a.Name}), {a.Name}.algebraicType)"))}
                                     );
                                 }}
