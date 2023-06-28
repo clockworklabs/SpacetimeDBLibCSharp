@@ -140,22 +140,22 @@ public interface IReducer
 
 public static class FFI
 {
-    private readonly static List<IReducer> Reducers = new();
-    private static ModuleDef Module = new();
+    private readonly static List<IReducer> reducers = new();
+    private static ModuleDef module = new();
     private static Dictionary<System.Type, object> registeredTypes = new();
 
     public static void RegisterReducer(IReducer reducer)
     {
-        Reducers.Add(reducer);
-        Module.Add(reducer.MakeReducerDef());
+        reducers.Add(reducer);
+        module.Add(reducer.MakeReducerDef());
     }
 
-    public static void RegisterTable(TableDef table) => Module.Add(table);
+    public static void RegisterTable(TableDef table) => module.Add(table);
 
-    public static AlgebraicTypeRef RegisterType(AlgebraicType type) => Module.AddType(type);
+    public static AlgebraicTypeRef RegisterType(AlgebraicType type) => module.AddType(type);
 
     // Note: this is accessed by C bindings.
-    private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(Module);
+    private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(module);
 
     // Note: this is accessed by C bindings.
     private static string? CallReducer(
@@ -169,7 +169,7 @@ public static class FFI
         {
             using var stream = new MemoryStream(args);
             using var reader = new BinaryReader(stream);
-            Reducers[(int)id].Invoke(reader, new(sender_identity, timestamp));
+            reducers[(int)id].Invoke(reader, new(sender_identity, timestamp));
             if (stream.Position != stream.Length)
             {
                 throw new Exception("Extra bytes in the input");

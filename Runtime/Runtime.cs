@@ -128,18 +128,18 @@ public static class Runtime
     {
         public readonly byte[] Schema;
 
-        private readonly IEnumerator<byte[]> _iter;
+        private readonly IEnumerator<byte[]> iter;
 
         public RawTableIter(uint tableId)
         {
-            _iter = new BufferIter(tableId);
-            _iter.MoveNext();
-            Schema = _iter.Current;
+            iter = new BufferIter(tableId);
+            iter.MoveNext();
+            Schema = iter.Current;
         }
 
         public IEnumerator<byte[]> GetEnumerator()
         {
-            return _iter;
+            return iter;
         }
 
         IEnumerator IEnumerable.GetEnumerator()

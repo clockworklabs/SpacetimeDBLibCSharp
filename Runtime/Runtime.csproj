@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../Codegen/Codegen.csproj" OutputItemType="Analyzer" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.507" />
   </ItemGroup>
 
 </Project>

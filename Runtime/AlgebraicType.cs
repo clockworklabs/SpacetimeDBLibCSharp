@@ -11,9 +11,9 @@ namespace SpacetimeDB.SATS
 
     public class TypeInfo<T>
     {
-        public readonly AlgebraicType algebraicType;
-        public readonly Func<BinaryReader, T> read;
-        public readonly Action<BinaryWriter, T> write;
+        public readonly AlgebraicType AlgebraicType;
+        public readonly Func<BinaryReader, T> Read;
+        public readonly Action<BinaryWriter, T> Write;
 
         public TypeInfo(
             AlgebraicType algebraicType,
@@ -21,16 +21,16 @@ namespace SpacetimeDB.SATS
             Action<BinaryWriter, T> write
         )
         {
-            this.algebraicType = algebraicType;
-            this.read = read;
-            this.write = write;
+            this.AlgebraicType = algebraicType;
+            this.Read = read;
+            this.Write = write;
         }
 
         public T ReadBytes(byte[] bytes)
         {
             using var stream = new MemoryStream(bytes);
             using var reader = new BinaryReader(stream);
-            var value = read(reader);
+            var value = Read(reader);
             if (stream.Position != stream.Length)
             {
                 throw new Exception("Extra bytes in the input");
@@ -42,7 +42,7 @@ namespace SpacetimeDB.SATS
         {
             using var stream = new MemoryStream();
             using var writer = new BinaryWriter(stream);
-            write(writer, value);
+            Write(writer, value);
             return stream.ToArray();
         }
     }
@@ -69,13 +69,13 @@ namespace SpacetimeDB.SATS
     [SpacetimeDB.Type]
     public partial struct SumType : IEnumerable<SumTypeVariant>
     {
-        public List<SumTypeVariant> variants = new();
+        public List<SumTypeVariant> Variants = new();
 
         public SumType() { }
 
         public IEnumerator<SumTypeVariant> GetEnumerator()
         {
-            return variants.AsEnumerable().GetEnumerator();
+            return Variants.AsEnumerable().GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -85,7 +85,7 @@ namespace SpacetimeDB.SATS
 
         public void Add(string name, AlgebraicType algebraicType)
         {
-            variants.Add(new SumTypeVariant(name, algebraicType));
+            Variants.Add(new SumTypeVariant(name, algebraicType));
         }
 
         public static TypeInfo<T?> MakeOption<T>(TypeInfo<T> typeInfo)
@@ -94,10 +94,10 @@ namespace SpacetimeDB.SATS
             var reprTypeInfo = Option<T>.GetSatsTypeInfo(typeInfo);
 
             return new TypeInfo<T?>(
-                reprTypeInfo.algebraicType,
+                reprTypeInfo.AlgebraicType,
                 (reader) =>
                 {
-                    var repr = reprTypeInfo.read(reader);
+                    var repr = reprTypeInfo.Read(reader);
                     return repr.IsSome ? repr.Some : null;
                 },
                 (writer, value) =>
@@ -107,7 +107,7 @@ namespace SpacetimeDB.SATS
                         null => new Option<T> { None = new Unit() },
                         _ => new Option<T> { Some = value }
                     };
-                    reprTypeInfo.write(writer, repr);
+                    reprTypeInfo.Write(writer, repr);
                 }
             );
         }
@@ -116,26 +116,26 @@ namespace SpacetimeDB.SATS
     [SpacetimeDB.Type]
     public partial struct SumTypeVariant
     {
-        public string? name;
-        public AlgebraicTypeBox algebraicType;
+        public string? Name;
+        public AlgebraicTypeBox AlgebraicType;
 
         public SumTypeVariant(string name, AlgebraicType algebraicType)
         {
-            this.name = name;
-            this.algebraicType = new AlgebraicTypeBox(algebraicType);
+            this.Name = name;
+            this.AlgebraicType = new AlgebraicTypeBox(algebraicType);
         }
     }
 
     [SpacetimeDB.Type]
     public partial struct ProductType : IEnumerable<ProductTypeElement>
     {
-        public List<ProductTypeElement> elements = new();
+        public List<ProductTypeElement> Elements = new();
 
         public ProductType() { }
 
         public IEnumerator<ProductTypeElement> GetEnumerator()
         {
-            return elements.AsEnumerable().GetEnumerator();
+            return Elements.AsEnumerable().GetEnumerator();
         }
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator()
@@ -145,33 +145,33 @@ namespace SpacetimeDB.SATS
 
         public void Add(string name, AlgebraicType algebraicType)
         {
-            elements.Add(new ProductTypeElement(name, algebraicType));
+            Elements.Add(new ProductTypeElement(name, algebraicType));
         }
     }
 
     [SpacetimeDB.Type]
     public partial struct ProductTypeElement
     {
-        public string? name;
-        public AlgebraicTypeBox algebraicType;
+        public string? Name;
+        public AlgebraicTypeBox AlgebraicType;
 
         public ProductTypeElement(string name, AlgebraicType algebraicType)
         {
-            this.name = name;
-            this.algebraicType = new AlgebraicTypeBox(algebraicType);
+            this.Name = name;
+            this.AlgebraicType = new AlgebraicTypeBox(algebraicType);
         }
     }
 
     [SpacetimeDB.Type]
     public partial struct MapType
     {
-        public AlgebraicTypeBox key;
-        public AlgebraicTypeBox value;
+        public AlgebraicTypeBox Key;
+        public AlgebraicTypeBox Value;
 
         public MapType(AlgebraicType key, AlgebraicType value)
         {
-            this.key = new AlgebraicTypeBox(key);
-            this.value = new AlgebraicTypeBox(value);
+            this.Key = new AlgebraicTypeBox(key);
+            this.Value = new AlgebraicTypeBox(value);
         }
     }
 
@@ -285,7 +285,7 @@ namespace SpacetimeDB.SATS
         );
 
         public static readonly TypeInfo<byte[]> BytesTypeInfo = new TypeInfo<byte[]>(
-            new BuiltinType { Array = new AlgebraicTypeBox(U8TypeInfo.algebraicType) },
+            new BuiltinType { Array = new AlgebraicTypeBox(U8TypeInfo.AlgebraicType) },
             (reader) => {
                 var length = reader.ReadInt32();
                 return reader.ReadBytes(length);
@@ -298,8 +298,8 @@ namespace SpacetimeDB.SATS
 
         public static readonly TypeInfo<string> StringTypeInfo = new TypeInfo<string>(
             new BuiltinType { String = default },
-            (reader) => Encoding.UTF8.GetString(BytesTypeInfo.read(reader)),
-            (writer, value) => BytesTypeInfo.write(writer, Encoding.UTF8.GetBytes(value))
+            (reader) => Encoding.UTF8.GetString(BytesTypeInfo.Read(reader)),
+            (writer, value) => BytesTypeInfo.Write(writer, Encoding.UTF8.GetBytes(value))
         );
 
         private static IEnumerable<T> ReadEnumerable<T>(
@@ -327,18 +327,18 @@ namespace SpacetimeDB.SATS
         public static TypeInfo<T[]> MakeArray<T>(TypeInfo<T> elementTypeInfo)
         {
             return new TypeInfo<T[]>(
-                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.algebraicType) },
-                (reader) => ReadEnumerable(reader, elementTypeInfo.read).ToArray(),
-                (writer, array) => WriteEnumerable(writer, array, elementTypeInfo.write)
+                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.AlgebraicType) },
+                (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToArray(),
+                (writer, array) => WriteEnumerable(writer, array, elementTypeInfo.Write)
             );
         }
 
         public static TypeInfo<List<T>> MakeList<T>(TypeInfo<T> elementTypeInfo)
         {
             return new TypeInfo<List<T>>(
-                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.algebraicType) },
-                (reader) => ReadEnumerable(reader, elementTypeInfo.read).ToList(),
-                (writer, list) => WriteEnumerable(writer, list, elementTypeInfo.write)
+                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.AlgebraicType) },
+                (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToList(),
+                (writer, list) => WriteEnumerable(writer, list, elementTypeInfo.Write)
             );
         }
 
@@ -346,11 +346,11 @@ namespace SpacetimeDB.SATS
             where K : notnull
         {
             return new TypeInfo<Dictionary<K, V>>(
-                new BuiltinType { Map = new MapType(key.algebraicType, value.algebraicType) },
+                new BuiltinType { Map = new MapType(key.AlgebraicType, value.AlgebraicType) },
                 (reader) =>
                     ReadEnumerable(
                             reader,
-                            (reader) => (Key: key.read(reader), Value: value.read(reader))
+                            (reader) => (Key: key.Read(reader), Value: value.Read(reader))
                         )
                         .ToDictionary((pair) => pair.Key, (pair) => pair.Value),
                 (writer, map) =>
@@ -359,8 +359,8 @@ namespace SpacetimeDB.SATS
                         map,
                         (w, pair) =>
                         {
-                            key.write(w, pair.Key);
-                            value.write(w, pair.Value);
+                            key.Write(w, pair.Key);
+                            value.Write(w, pair.Value);
                         }
                     )
             );
@@ -370,12 +370,12 @@ namespace SpacetimeDB.SATS
             where T: struct, Enum, IConvertible
             where Base: struct
         {
-            var unitType = Unit.GetSatsTypeInfo().algebraicType;
+            var unitType = Unit.GetSatsTypeInfo().AlgebraicType;
 
             return new TypeInfo<T>(
-                new SumType { variants = Enum.GetNames(typeof(T)).Select(name => new SumTypeVariant(name, unitType)).ToList() },
-                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.read(reader)),
-                (writer, value) => baseTypeInfo.write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+                new SumType { Variants = Enum.GetNames(typeof(T)).Select(name => new SumTypeVariant(name, unitType)).ToList() },
+                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.Read(reader)),
+                (writer, value) => baseTypeInfo.Write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
             );
         }
     }
@@ -426,7 +426,7 @@ namespace SpacetimeDB.SATS
     // represented differently than AlgebraicTypeDecl itself.
     public class AlgebraicTypeBox
     {
-        public AlgebraicType deref;
+        public AlgebraicType Deref;
 
         public static TypeInfo<AlgebraicTypeBox> GetSatsTypeInfo()
         {
@@ -438,16 +438,16 @@ namespace SpacetimeDB.SATS
                     new TypeInfo<AlgebraicTypeBox>(
                         new AlgebraicTypeRef(0),
                         (reader) =>
-                            new AlgebraicTypeBox(AlgebraicType.GetSatsTypeInfo().read(reader)),
+                            new AlgebraicTypeBox(AlgebraicType.GetSatsTypeInfo().Read(reader)),
                         (writer, value) =>
-                            AlgebraicType.GetSatsTypeInfo().write(writer, value.deref)
+                            AlgebraicType.GetSatsTypeInfo().Write(writer, value.Deref)
                     )
             );
         }
 
         public AlgebraicTypeBox(AlgebraicType deref)
         {
-            this.deref = deref;
+            this.Deref = deref;
         }
     }
 }
