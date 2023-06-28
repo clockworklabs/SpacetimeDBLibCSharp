@@ -124,11 +124,12 @@ public class Module : IIncrementalGenerator
                                 .Select(GetSatsTypeInfo().ReadBytes);
 
                             public void Insert() {{
-                                var bytes = GetSatsTypeInfo().ToBytes(this);
+                                var typeInfo = GetSatsTypeInfo();
+                                var bytes = typeInfo.ToBytes(this);
                                 SpacetimeDB.Runtime.Insert(tableId.Value, bytes);
                                 // bytes should contain modified value now with autoinc fields updated
                                 {(t.AutoIncFields.Length == 0 ? "" : $@"
-                                    var newInstance = GetSatsTypeInfo().ReadBytes(bytes);
+                                    var newInstance = typeInfo.ReadBytes(bytes);
                                     {string.Join("\n", t.AutoIncFields.Select(f => $"this.{f} = newInstance.{f};"))}
                                 ")}
                             }}
