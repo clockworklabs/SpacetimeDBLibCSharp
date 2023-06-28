@@ -55,7 +55,7 @@ typedef struct {
 } String;
 
 typedef struct {
-  const uint8_t* ptr;
+  uint8_t* ptr;
   size_t len;
 } Bytes;
 
@@ -164,7 +164,7 @@ static MonoArray* stdb_seek_eq(uint32_t table_id,
 
 __attribute__((import_module("spacetime"),
                import_name("_insert"))) extern uint16_t
-_insert(uint32_t table_id, const uint8_t* row, size_t row_len);
+_insert(uint32_t table_id, uint8_t* row, size_t row_len);
 
 static void stdb_insert(uint32_t table_id, MonoArray* row_) {
   Bytes row = to_bytes(row_);

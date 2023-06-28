@@ -132,8 +132,8 @@ public class Type : IIncrementalGenerator
                             new
                             {
                                 m.Name,
-                                Read = $"{m.Name} = fieldTypeInfo.{m.Name}.read(reader),",
-                                Write = $"fieldTypeInfo.{m.Name}.write(writer, value.{m.Name});"
+                                Read = $"{m.Name} = fieldTypeInfo.{m.Name}.Read(reader),",
+                                Write = $"fieldTypeInfo.{m.Name}.Write(writer, value.{m.Name});"
                             }
                     );
 
@@ -214,7 +214,7 @@ public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
 
         return new SpacetimeDB.SATS.TypeInfo<{type.GenericName}>(
             new SpacetimeDB.SATS.{typeKind}Type {{
-                {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.algebraicType }},"))}
+                {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
             }},
             (reader) => {read},
             (writer, value) => {{
