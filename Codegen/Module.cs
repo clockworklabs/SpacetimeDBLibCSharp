@@ -19,8 +19,6 @@ public class Module : IIncrementalGenerator
             {
                 var table = (TypeDeclarationSyntax)context.TargetNode;
 
-                var autoIncFields = new List<string>();
-
                 var fields = table.Members
                     .OfType<FieldDeclarationSyntax>()
                     .Where(f => !f.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
@@ -84,8 +82,6 @@ public class Module : IIncrementalGenerator
                                     $"Type {type} is not valid for AutoInc or Identity as it's not an integer."
                                 );
                             }
-
-                            autoIncFields.AddRange(f.Declaration.Variables.Select(v => v.Identifier.Text));
                         }
 
                         return f.Declaration.Variables.Select(
@@ -106,7 +102,6 @@ public class Module : IIncrementalGenerator
                     Name = table.Identifier.Text,
                     FullName = SymbolToName(context.SemanticModel.GetDeclaredSymbol(table)!),
                     Fields = fields,
-                    AutoIncFields = autoIncFields.ToArray(),
                 };
             }
         );
@@ -115,6 +110,10 @@ public class Module : IIncrementalGenerator
             .Select(
                 (t, ct) =>
                 {
+                    var autoIncFields = t.Fields
+                        .Where(f => f.IndexKind == "Identity" || f.IndexKind == "AutoInc")
+                        .Select(f => f.Name);
+
                     var extensions =
                         $@"
                             private static Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
@@ -128,9 +127,9 @@ public class Module : IIncrementalGenerator
                                 var bytes = typeInfo.ToBytes(this);
                                 SpacetimeDB.Runtime.Insert(tableId.Value, bytes);
                                 // bytes should contain modified value now with autoinc fields updated
-                                {(t.AutoIncFields.Length == 0 ? "" : $@"
+                                {(autoIncFields.Any() ? "" : $@"
                                     var newInstance = typeInfo.ReadBytes(bytes);
-                                    {string.Join("\n", t.AutoIncFields.Select(f => $"this.{f} = newInstance.{f};"))}
+                                    {string.Join("\n", autoIncFields.Select(f => $"this.{f} = newInstance.{f};"))}
                                 ")}
                             }}
                         ";
@@ -196,17 +195,28 @@ public class Module : IIncrementalGenerator
                     throw new System.Exception($"Reducer {method} must return void");
                 }
 
-                var exportName =
-                    (string?)context.Attributes
+                var exportName = (string?)
+                    context.Attributes
                         .SingleOrDefault()
-                        ?.ConstructorArguments.SingleOrDefault().Value;
+                        ?.ConstructorArguments.SingleOrDefault()
+                        .Value;
 
                 return new
                 {
                     Name = method.Name,
                     ExportName = exportName ?? method.Name,
                     FullName = SymbolToName(method),
-                    Args = method.Parameters.Select(p => (p.Name, p.Type, IsDbEvent: p.Type.ToString() == "SpacetimeDB.Runtime.DbEventArgs")).ToArray(),
+                    Args = method.Parameters
+                        .Select(
+                            p =>
+                                (
+                                    p.Name,
+                                    p.Type,
+                                    IsDbEvent: p.Type.ToString()
+                                        == "SpacetimeDB.Runtime.DbEventArgs"
+                                )
+                        )
+                        .ToArray(),
                     Scope = new Scope((TypeDeclarationSyntax)context.TargetNode.Parent!)
                 };
             }
