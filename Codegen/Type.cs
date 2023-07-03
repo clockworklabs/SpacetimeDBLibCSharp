@@ -132,8 +132,8 @@ public class Type : IIncrementalGenerator
                             new
                             {
                                 m.Name,
-                                Read = $"{m.Name} = fieldTypeInfo.Value.{m.Name}.Read(reader),",
-                                Write = $"fieldTypeInfo.Value.{m.Name}.Write(writer, value.{m.Name});"
+                                Read = $"{m.Name} = fieldTypeInfo!.{m.Name}.Read(reader),",
+                                Write = $"fieldTypeInfo!.{m.Name}.Write(writer, value.{m.Name});"
                             }
                     );
 
@@ -219,10 +219,8 @@ public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
     var typeRef = SpacetimeDB.Module.FFI.AllocTypeRef();
     // Careful with the order: to prevent infinite recursion, we need to assign satsTypeInfo first,
     // and populate fieldTypeInfo after that, even though the first one logically uses the second one in its
-    // read/write methods. That's why we wrap fieldTypeInfo into Lazy.
-    var fieldTypeInfo = new System.Lazy<FieldTypeInfo>(() => new FieldTypeInfo {{
-        {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
-    }});
+    // read/write methods.
+    FieldTypeInfo? fieldTypeInfo;
     satsTypeInfo = new(
         typeRef,
         (reader) => {read},
@@ -230,8 +228,11 @@ public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
             {write}
         }}
     );
+    fieldTypeInfo = new FieldTypeInfo {{
+        {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
+    }};
     SpacetimeDB.Module.FFI.SetTypeRef<{type.GenericName}>(typeRef, new SpacetimeDB.SATS.{typeKind}Type {{
-        {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.Value.{m.Name}.AlgebraicType }},"))}
+        {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
     }});
     return satsTypeInfo;
 }}
