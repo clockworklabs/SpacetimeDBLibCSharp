@@ -7,21 +7,6 @@ using System.Linq;
 using SpacetimeDB.SATS;
 
 [SpacetimeDB.Type]
-partial struct Typespace
-{
-    List<AlgebraicType> Types = new();
-
-    public Typespace() { }
-
-    public AlgebraicTypeRef Add(AlgebraicType type)
-    {
-        var index = Types.Count;
-        Types.Add(type);
-        return new AlgebraicTypeRef(index);
-    }
-}
-
-[SpacetimeDB.Type]
 public partial struct IndexDef
 {
     string Name;
@@ -84,16 +69,37 @@ partial struct MiscModuleExport : SpacetimeDB.TaggedEnum<(TypeAlias TypeAlias, U
 [SpacetimeDB.Type]
 public partial struct ModuleDef
 {
-    Typespace Typespace = new();
+    List<AlgebraicType> Types = new();
     List<TableDef> Tables = new();
     List<ReducerDef> Reducers = new();
     List<MiscModuleExport> MiscExports = new();
 
     public ModuleDef() { }
 
-    public AlgebraicTypeRef AddType(AlgebraicType type)
+    public AlgebraicTypeRef AllocTypeRef() {
+        var index = Types.Count;
+        var typeRef = new AlgebraicTypeRef(index);
+        // uninhabited type, to be replaced by a real type
+        Types.Add(new SumType());
+        return typeRef;
+    }
+
+    // Note: this intends to generate a valid identifier, but it's not guaranteed to be unique as it's not proper mangling.
+    // Fix it up to a different mangling scheme if it causes problems.
+    private static string GetFriendlyName(Type type) =>
+        type.IsGenericType
+            ? $"{type.Name.Remove(type.Name.IndexOf('`'))}_{string.Join("_", type.GetGenericArguments().Select(GetFriendlyName))}"
+            : type.Name;
+
+    public void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type)
     {
-        return Typespace.Add(type);
+        Types[typeRef.TypeRef] = type;
+        MiscExports.Add(
+            new MiscModuleExport
+            {
+                TypeAlias = new TypeAlias { Name = GetFriendlyName(typeof(T)), Type = typeRef }
+            }
+        );
     }
 
     public void Add(TableDef table)
@@ -127,7 +133,8 @@ public enum ColumnIndexKind : byte
     AutoInc,
 }
 
-public static class ReducerKind {
+public static class ReducerKind
+{
     public const string Init = "__init__";
     public const string Update = "__update__";
 }
@@ -140,9 +147,8 @@ public interface IReducer
 
 public static class FFI
 {
-    private readonly static List<IReducer> reducers = new();
+    private static List<IReducer> reducers = new();
     private static ModuleDef module = new();
-    private static Dictionary<System.Type, object> registeredTypes = new();
 
     public static void RegisterReducer(IReducer reducer)
     {
@@ -152,7 +158,9 @@ public static class FFI
 
     public static void RegisterTable(TableDef table) => module.Add(table);
 
-    public static AlgebraicTypeRef RegisterType(AlgebraicType type) => module.AddType(type);
+    public static AlgebraicTypeRef AllocTypeRef() => module.AllocTypeRef();
+
+    public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type) => module.SetTypeRef<T>(typeRef, type);
 
     // Note: this is accessed by C bindings.
     private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(module);

@@ -132,8 +132,8 @@ public class Type : IIncrementalGenerator
                             new
                             {
                                 m.Name,
-                                Read = $"{m.Name} = fieldTypeInfo.{m.Name}.Read(reader),",
-                                Write = $"fieldTypeInfo.{m.Name}.Write(writer, value.{m.Name});"
+                                Read = $"{m.Name} = fieldTypeInfo.Value.{m.Name}.Read(reader),",
+                                Write = $"fieldTypeInfo.Value.{m.Name}.Write(writer, value.{m.Name});"
                             }
                     );
 
@@ -204,24 +204,36 @@ public class Type : IIncrementalGenerator
                         $@"
 // Workaround for C# not allowing multiple static constructors.
 
+private static SpacetimeDB.SATS.TypeInfo<{type.GenericName}>? satsTypeInfo;
+
+private struct FieldTypeInfo {{
+    {string.Join("\n", type.Members.Select(m => $"public SpacetimeDB.SATS.TypeInfo<{m.TypeSymbol}> {m.Name};"))}
+}}
+
 public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
     string.Join(", ", type.TypeParams.Select(p => $"SpacetimeDB.SATS.TypeInfo<{p}> {p}TypeInfo"))
 }) {{
-    return SpacetimeDB.SATS.Typespace.RegisterType<{type.GenericName}>(() => {{
-        var fieldTypeInfo = new {{
-            {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
-        }};
-
-        return new SpacetimeDB.SATS.TypeInfo<{type.GenericName}>(
-            new SpacetimeDB.SATS.{typeKind}Type {{
-                {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
-            }},
-            (reader) => {read},
-            (writer, value) => {{
-                {write}
-            }}
-        );
+    if (satsTypeInfo is not null) {{
+        return satsTypeInfo;
+    }}
+    var typeRef = SpacetimeDB.Module.FFI.AllocTypeRef();
+    // Careful with the order: to prevent infinite recursion, we need to assign satsTypeInfo first,
+    // and populate fieldTypeInfo after that, even though the first one logically uses the second one in its
+    // read/write methods. That's why we wrap fieldTypeInfo into Lazy.
+    var fieldTypeInfo = new System.Lazy<FieldTypeInfo>(() => new FieldTypeInfo {{
+        {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
     }});
+    satsTypeInfo = new(
+        typeRef,
+        (reader) => {read},
+        (writer, value) => {{
+            {write}
+        }}
+    );
+    SpacetimeDB.Module.FFI.SetTypeRef<{type.GenericName}>(typeRef, new SpacetimeDB.SATS.{typeKind}Type {{
+        {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.Value.{m.Name}.AlgebraicType }},"))}
+    }});
+    return satsTypeInfo;
 }}
                     ";
 

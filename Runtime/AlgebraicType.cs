@@ -47,22 +47,6 @@ namespace SpacetimeDB.SATS
         }
     }
 
-    public static class Typespace
-    {
-        private static Dictionary<System.Type, object> registeredTypes = new();
-
-        public static TypeInfo<T> RegisterType<T>(Func<TypeInfo<T>> createType)
-        {
-            if (registeredTypes.TryGetValue(typeof(T), out var typeInfoObj))
-            {
-                return (TypeInfo<T>)typeInfoObj;
-            }
-            var typeInfo = createType();
-            registeredTypes.Add(typeof(T), typeInfo);
-            return typeInfo;
-        }
-    }
-
     [SpacetimeDB.Type]
     partial struct Option<T> : SpacetimeDB.TaggedEnum<(T Some, Unit None)> { }
 
@@ -286,11 +270,13 @@ namespace SpacetimeDB.SATS
 
         public static readonly TypeInfo<byte[]> BytesTypeInfo = new TypeInfo<byte[]>(
             new BuiltinType { Array = new AlgebraicTypeBox(U8TypeInfo.AlgebraicType) },
-            (reader) => {
+            (reader) =>
+            {
                 var length = reader.ReadInt32();
                 return reader.ReadBytes(length);
             },
-            (writer, value) => {
+            (writer, value) =>
+            {
                 writer.Write(value.Length);
                 writer.Write(value);
             }
@@ -366,17 +352,41 @@ namespace SpacetimeDB.SATS
             );
         }
 
-        public static TypeInfo<T> MakeEnum<T, Base>(TypeInfo<Base> baseTypeInfo)
-            where T: struct, Enum, IConvertible
-            where Base: struct
-        {
-            var unitType = Unit.GetSatsTypeInfo().AlgebraicType;
+        private static Dictionary<Type, object> enumTypeInfoCache = new();
+        private static AlgebraicType unitType = Unit.GetSatsTypeInfo().AlgebraicType;
 
-            return new TypeInfo<T>(
-                new SumType { Variants = Enum.GetNames(typeof(T)).Select(name => new SumTypeVariant(name, unitType)).ToList() },
-                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.Read(reader)),
-                (writer, value) => baseTypeInfo.Write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+        public static TypeInfo<T> MakeEnum<T, Base>(TypeInfo<Base> baseTypeInfo)
+            where T : struct, Enum, IConvertible
+            where Base : struct
+        {
+            if (enumTypeInfoCache.TryGetValue(typeof(T), out var cached))
+            {
+                return (TypeInfo<T>)cached;
+            }
+
+            // plain enums are never recursive, so it should be fine to alloc & set typeref at once
+            var typeRef = Module.FFI.AllocTypeRef();
+
+            Module.FFI.SetTypeRef<T>(
+                typeRef,
+                new SumType
+                {
+                    Variants = Enum.GetNames(typeof(T))
+                        .Select(name => new SumTypeVariant(name, unitType))
+                        .ToList()
+                }
             );
+
+            var typeInfo = new TypeInfo<T>(
+                typeRef,
+                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.Read(reader)),
+                (writer, value) =>
+                    baseTypeInfo.Write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+            );
+
+            enumTypeInfoCache[typeof(T)] = typeInfo;
+
+            return typeInfo;
         }
     }
 
@@ -428,14 +438,13 @@ namespace SpacetimeDB.SATS
     {
         public AlgebraicType Deref;
 
-        public static TypeInfo<AlgebraicTypeBox> GetSatsTypeInfo()
-        {
-            // Note: AlgebraicType.GetSatsTypeInfo() is intentionally not stored
-            // in a variable - it would cause an infinite recursion during
-            // AlgebraicType.GetSatsTypeInfo() initialization.
-            return Typespace.RegisterType(
+        // Note: AlgebraicType.GetSatsTypeInfo() is intentionally not stored
+        // in a variable - it would cause an infinite recursion during
+        // AlgebraicType.GetSatsTypeInfo() initialization.
+        private static Lazy<TypeInfo<AlgebraicTypeBox>> satsTypeInfo =
+            new(
                 () =>
-                    new TypeInfo<AlgebraicTypeBox>(
+                    new(
                         new AlgebraicTypeRef(0),
                         (reader) =>
                             new AlgebraicTypeBox(AlgebraicType.GetSatsTypeInfo().Read(reader)),
@@ -443,7 +452,8 @@ namespace SpacetimeDB.SATS
                             AlgebraicType.GetSatsTypeInfo().Write(writer, value.Deref)
                     )
             );
-        }
+
+        public static TypeInfo<AlgebraicTypeBox> GetSatsTypeInfo() => satsTypeInfo.Value;
 
         public AlgebraicTypeBox(AlgebraicType deref)
         {
