@@ -168,7 +168,7 @@ public class Filter
         // TODO: implement handling of conversions for non-int integer types (byte, short, etc.)
         // I gave it a try, but ran into some bizarre crashes, so leaving for later.
         var rhs = ExprAsConstant(expr.Right);
-        var rhsWrite = fieldTypeInfos[lhsFieldIndex].Value.write;
+        var rhsWrite = fieldTypeInfos[lhsFieldIndex].Value.Write;
         var erasedRhs = new ErasedValue((writer) => rhsWrite(writer, rhs));
 
         var args = new CmpArgs(lhsFieldIndex, new Rhs { Value = erasedRhs });
