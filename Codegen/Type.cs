@@ -206,10 +206,6 @@ public class Type : IIncrementalGenerator
 
 private static SpacetimeDB.SATS.TypeInfo<{type.GenericName}>? satsTypeInfo;
 
-private struct FieldTypeInfo {{
-    {string.Join("\n", type.Members.Select(m => $"public SpacetimeDB.SATS.TypeInfo<{m.TypeSymbol}> {m.Name};"))}
-}}
-
 public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
     string.Join(", ", type.TypeParams.Select(p => $"SpacetimeDB.SATS.TypeInfo<{p}> {p}TypeInfo"))
 }) {{
@@ -218,22 +214,24 @@ public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
     }}
     var typeRef = SpacetimeDB.Module.FFI.AllocTypeRef();
     // Careful with the order: to prevent infinite recursion, we need to assign satsTypeInfo first,
-    // and populate fieldTypeInfo after that, even though the first one logically uses the second one in its
-    // read/write methods.
-    FieldTypeInfo? fieldTypeInfo;
+    // and populate fieldTypeInfo and, correspondingly, read/write implementations, after that.
+    System.Func<System.IO.BinaryReader, {type.GenericName}> read = (reader) => throw new System.InvalidOperationException(""Recursive type is not yet initialized"");
+    System.Action<System.IO.BinaryWriter, {type.GenericName}> write = (writer, value) => throw new System.InvalidOperationException(""Recursive type is not yet initialized"");
     satsTypeInfo = new(
         typeRef,
-        (reader) => {read},
-        (writer, value) => {{
-            {write}
-        }}
+        (reader) => read(reader),
+        (writer, value) => write(writer, value)
     );
-    fieldTypeInfo = new FieldTypeInfo {{
+    var fieldTypeInfo = new {{
         {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
     }};
     SpacetimeDB.Module.FFI.SetTypeRef<{type.GenericName}>(typeRef, new SpacetimeDB.SATS.{typeKind}Type {{
         {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
     }});
+    read = (reader) => {read};
+    write = (writer, value) => {{
+        {write}
+    }};
     return satsTypeInfo;
 }}
                     ";

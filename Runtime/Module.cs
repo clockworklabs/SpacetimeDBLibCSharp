@@ -149,6 +149,10 @@ public static class FFI
 {
     private static List<IReducer> reducers = new();
     private static ModuleDef module = new();
+    // module holding meta-types like ModuleDef, AlgebraicType, etc
+    private static ModuleDef internalModule = new();
+    // context-dependant module for registrations
+    private static ModuleDef currentModule = module;
 
     public static void RegisterReducer(IReducer reducer)
     {
@@ -163,7 +167,15 @@ public static class FFI
     public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type) => module.SetTypeRef<T>(typeRef, type);
 
     // Note: this is accessed by C bindings.
-    private static byte[] DescribeModule() => ModuleDef.GetSatsTypeInfo().ToBytes(module);
+    private static byte[] DescribeModule() {
+        try {
+            // make sure any meta-types starting from ModuleDef go into internal module rather than user-facing one.
+            currentModule = internalModule;
+            return ModuleDef.GetSatsTypeInfo().ToBytes(module);
+        } finally {
+            currentModule = module;
+        }
+    }
 
     // Note: this is accessed by C bindings.
     private static string? CallReducer(
