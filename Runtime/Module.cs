@@ -149,10 +149,6 @@ public static class FFI
 {
     private static List<IReducer> reducers = new();
     private static ModuleDef module = new();
-    // module holding meta-types like ModuleDef, AlgebraicType, etc
-    private static ModuleDef internalModule = new();
-    // context-dependant module for registrations
-    private static ModuleDef currentModule = module;
 
     public static void RegisterReducer(IReducer reducer)
     {
@@ -168,12 +164,14 @@ public static class FFI
 
     // Note: this is accessed by C bindings.
     private static byte[] DescribeModule() {
+        // replace `module` with a temporary internal module that will register ModuleDef, AlgebraicType and other internal types
+        // during the ModuleDef.GetSatsTypeInfo() instead of exposing them via user's module.
+        var userModule = module;
         try {
-            // make sure any meta-types starting from ModuleDef go into internal module rather than user-facing one.
-            currentModule = internalModule;
-            return ModuleDef.GetSatsTypeInfo().ToBytes(module);
+            module = new();
+            return ModuleDef.GetSatsTypeInfo().ToBytes(userModule);
         } finally {
-            currentModule = module;
+            module = userModule;
         }
     }
 
