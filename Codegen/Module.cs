@@ -116,10 +116,18 @@ public class Module : IIncrementalGenerator
 
                     var extensions =
                         $@"
-                            private static Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
+                            private static readonly Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
                                 new SpacetimeDB.Runtime.RawTableIter(tableId.Value)
+                                .Select(GetSatsTypeInfo().ReadBytes);
+
+                            private static readonly Lazy<KeyValuePair<string, SpacetimeDB.SATS.TypeInfo<object?>>[]> fieldTypeInfos = new (() => new KeyValuePair<string, SpacetimeDB.SATS.TypeInfo<object?>>[] {{
+                                {string.Join("\n", t.Fields.Select(f => $"new (nameof({f.Name}), {f.TypeInfo}.EraseType()),"))}
+                            }});
+
+                            public static IEnumerable<{t.Name}> Query(System.Linq.Expressions.Expression<Func<{t.Name}, bool>> filter) =>
+                                new SpacetimeDB.Runtime.RawTableIter(tableId.Value, SpacetimeDB.Filter.Filter.Compile<{t.Name}>(fieldTypeInfos.Value, filter))
                                 .Select(GetSatsTypeInfo().ReadBytes);
 
                             public void Insert() {{

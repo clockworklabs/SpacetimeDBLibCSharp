@@ -202,8 +202,6 @@ public class Type : IIncrementalGenerator
 
                     typeDesc +=
                         $@"
-// Workaround for C# not allowing multiple static constructors.
-
 private static SpacetimeDB.SATS.TypeInfo<{type.GenericName}>? satsTypeInfo;
 
 public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({

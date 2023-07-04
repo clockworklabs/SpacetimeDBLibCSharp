@@ -12,4 +12,8 @@
     <ProjectReference Include="../Codegen/Codegen.csproj" OutputItemType="Analyzer" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Linq.Expression.Optimizer" Version="1.0.15" />
+  </ItemGroup>
+
 </Project>

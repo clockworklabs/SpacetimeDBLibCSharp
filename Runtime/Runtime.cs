@@ -78,6 +78,13 @@ public static class Runtime
     private static extern void BufferIterStart(uint table_id, out uint handle);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
+    private static extern void BufferIterStartFiltered(
+        uint table_id,
+        byte[] filter,
+        out uint handle
+    );
+
+    [MethodImpl(MethodImplOptions.InternalCall)]
     private static extern byte[]? BufferIterNext(uint handle);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
@@ -90,9 +97,16 @@ public static class Runtime
 
         object IEnumerator.Current => Current;
 
-        public BufferIter(uint table_id)
+        public BufferIter(uint table_id, byte[]? filterBytes)
         {
-            BufferIterStart(table_id, out handle);
+            if (filterBytes is not null)
+            {
+                BufferIterStartFiltered(table_id, filterBytes, out handle);
+            }
+            else
+            {
+                BufferIterStart(table_id, out handle);
+            }
         }
 
         public bool MoveNext()
@@ -130,9 +144,9 @@ public static class Runtime
 
         private readonly IEnumerator<byte[]> iter;
 
-        public RawTableIter(uint tableId)
+        public RawTableIter(uint tableId, byte[]? filterBytes = null)
         {
-            iter = new BufferIter(tableId);
+            iter = new BufferIter(tableId, filterBytes);
             iter.MoveNext();
             Schema = iter.Current;
         }

@@ -45,6 +45,15 @@ namespace SpacetimeDB.SATS
             Write(writer, value);
             return stream.ToArray();
         }
+
+        public TypeInfo<object?> EraseType()
+        {
+            return new TypeInfo<object?>(
+                algebraicType,
+                reader => read(reader),
+                (writer, value) => write(writer, (T)value!)
+            );
+        }
     }
 
     [SpacetimeDB.Type]

@@ -257,6 +257,24 @@ static void stdb_iter_start(uint32_t table_id, BufferIter* iter) {
 }
 
 __attribute__((import_module("spacetime"),
+               import_name("_iter_start_filtered"))) extern uint16_t
+_iter_start_filtered(uint32_t table_id,
+                     const uint8_t* filter,
+                     size_t filter_len,
+                     BufferIter* out);
+
+static void stdb_iter_start_filtered(uint32_t table_id,
+                                     MonoArray* filter_,
+                                     BufferIter* iter) {
+  Bytes filter = to_bytes(filter_);
+
+  uint16_t result =
+      _iter_start_filtered(table_id, filter.ptr, filter.len, iter);
+
+  check_result(result);
+}
+
+__attribute__((import_module("spacetime"),
                import_name("_iter_next"))) extern uint16_t
 _iter_next(BufferIter iter, Buffer* out);
 
@@ -381,6 +399,7 @@ void mono_stdb_attach_bindings() {
   ATTACH(stdb_delete_eq, "DeleteEq");
   // ATTACH(stdb_delete_range, "DeleteRange");
   ATTACH(stdb_iter_start, "BufferIterStart");
+  ATTACH(stdb_iter_start_filtered, "BufferIterStartFiltered");
   ATTACH(stdb_iter_next, "BufferIterNext");
   ATTACH(stdb_iter_drop, "BufferIterDrop");
   ATTACH(stdb_console_log, "Log");
