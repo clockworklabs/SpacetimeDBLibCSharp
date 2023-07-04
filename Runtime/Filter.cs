@@ -254,8 +254,8 @@ partial class ExprBox
             () =>
                 new TypeInfo<ExprBox>(
                     new AlgebraicTypeRef(0),
-                    (reader) => new ExprBox(Expr.GetSatsTypeInfo().read(reader)),
-                    (writer, value) => Expr.GetSatsTypeInfo().write(writer, value.deref)
+                    (reader) => new ExprBox(Expr.GetSatsTypeInfo().Read(reader)),
+                    (writer, value) => Expr.GetSatsTypeInfo().Write(writer, value.deref)
                 )
         );
 
