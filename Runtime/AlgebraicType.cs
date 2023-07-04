@@ -49,9 +49,9 @@ namespace SpacetimeDB.SATS
         public TypeInfo<object?> EraseType()
         {
             return new TypeInfo<object?>(
-                algebraicType,
-                reader => read(reader),
-                (writer, value) => write(writer, (T)value!)
+                AlgebraicType,
+                reader => Read(reader),
+                (writer, value) => Write(writer, (T)value!)
             );
         }
     }
