@@ -111,8 +111,6 @@ public partial struct ModuleDef
     {
         Reducers.Add(reducer);
     }
-
-    // TODO: support complex named types (aliases).
 }
 
 [SpacetimeDB.Type]

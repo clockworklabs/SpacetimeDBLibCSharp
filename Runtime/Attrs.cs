@@ -17,10 +17,10 @@ public sealed class ReducerAttribute : Attribute {
     public const string Update = "__update__";
 }
 
-[AttributeUsage(AttributeTargets.Struct, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
 public sealed class TableAttribute : Attribute { }
 
-[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Enum, Inherited = false, AllowMultiple = false)]
+[AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class | AttributeTargets.Enum, Inherited = false, AllowMultiple = false)]
 public sealed class TypeAttribute : Attribute { }
 
 public interface TaggedEnum<Variants>

@@ -101,12 +101,12 @@ namespace SpacetimeDB.SATS
     public partial struct SumTypeVariant
     {
         public string? Name;
-        public AlgebraicTypeBox AlgebraicType;
+        public AlgebraicType AlgebraicType;
 
-        public SumTypeVariant(string name, AlgebraicType algebraicType)
+        public SumTypeVariant(string? name, AlgebraicType algebraicType)
         {
             this.Name = name;
-            this.AlgebraicType = new AlgebraicTypeBox(algebraicType);
+            this.AlgebraicType = algebraicType;
         }
     }
 
@@ -137,25 +137,25 @@ namespace SpacetimeDB.SATS
     public partial struct ProductTypeElement
     {
         public string? Name;
-        public AlgebraicTypeBox AlgebraicType;
+        public AlgebraicType AlgebraicType;
 
-        public ProductTypeElement(string name, AlgebraicType algebraicType)
+        public ProductTypeElement(string? name, AlgebraicType algebraicType)
         {
             this.Name = name;
-            this.AlgebraicType = new AlgebraicTypeBox(algebraicType);
+            this.AlgebraicType = algebraicType;
         }
     }
 
     [SpacetimeDB.Type]
     public partial struct MapType
     {
-        public AlgebraicTypeBox Key;
-        public AlgebraicTypeBox Value;
+        public AlgebraicType Key;
+        public AlgebraicType Value;
 
         public MapType(AlgebraicType key, AlgebraicType value)
         {
-            this.Key = new AlgebraicTypeBox(key);
-            this.Value = new AlgebraicTypeBox(value);
+            this.Key = key;
+            this.Value = value;
         }
     }
 
@@ -176,7 +176,7 @@ namespace SpacetimeDB.SATS
             Unit F32,
             Unit F64,
             Unit String,
-            AlgebraicTypeBox Array,
+            AlgebraicType Array,
             MapType Map
         )>
     {
@@ -269,7 +269,7 @@ namespace SpacetimeDB.SATS
         );
 
         public static readonly TypeInfo<byte[]> BytesTypeInfo = new TypeInfo<byte[]>(
-            new BuiltinType { Array = new AlgebraicTypeBox(U8TypeInfo.AlgebraicType) },
+            new BuiltinType { Array = U8TypeInfo.AlgebraicType },
             (reader) =>
             {
                 var length = reader.ReadInt32();
@@ -313,7 +313,7 @@ namespace SpacetimeDB.SATS
         public static TypeInfo<T[]> MakeArray<T>(TypeInfo<T> elementTypeInfo)
         {
             return new TypeInfo<T[]>(
-                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.AlgebraicType) },
+                new BuiltinType { Array = elementTypeInfo.AlgebraicType },
                 (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToArray(),
                 (writer, array) => WriteEnumerable(writer, array, elementTypeInfo.Write)
             );
@@ -322,7 +322,7 @@ namespace SpacetimeDB.SATS
         public static TypeInfo<List<T>> MakeList<T>(TypeInfo<T> elementTypeInfo)
         {
             return new TypeInfo<List<T>>(
-                new BuiltinType { Array = new AlgebraicTypeBox(elementTypeInfo.AlgebraicType) },
+                new BuiltinType { Array = elementTypeInfo.AlgebraicType },
                 (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToList(),
                 (writer, list) => WriteEnumerable(writer, list, elementTypeInfo.Write)
             );
@@ -428,36 +428,6 @@ namespace SpacetimeDB.SATS
         public AlgebraicTypeRef(int typeRef)
         {
             TypeRef = typeRef;
-        }
-    }
-
-    // This is escape hatch for recursive references to AlgebraicTypeDecl.
-    // It's nice to have it as separate class anyway because it needs to be
-    // represented differently than AlgebraicTypeDecl itself.
-    public class AlgebraicTypeBox
-    {
-        public AlgebraicType Deref;
-
-        // Note: AlgebraicType.GetSatsTypeInfo() is intentionally not stored
-        // in a variable - it would cause an infinite recursion during
-        // AlgebraicType.GetSatsTypeInfo() initialization.
-        private static Lazy<TypeInfo<AlgebraicTypeBox>> satsTypeInfo =
-            new(
-                () =>
-                    new(
-                        new AlgebraicTypeRef(0),
-                        (reader) =>
-                            new AlgebraicTypeBox(AlgebraicType.GetSatsTypeInfo().Read(reader)),
-                        (writer, value) =>
-                            AlgebraicType.GetSatsTypeInfo().Write(writer, value.Deref)
-                    )
-            );
-
-        public static TypeInfo<AlgebraicTypeBox> GetSatsTypeInfo() => satsTypeInfo.Value;
-
-        public AlgebraicTypeBox(AlgebraicType deref)
-        {
-            this.Deref = deref;
         }
     }
 }
