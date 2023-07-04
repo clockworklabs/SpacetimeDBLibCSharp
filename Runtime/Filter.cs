@@ -66,6 +66,7 @@ partial struct Cmp
     }
 }
 
+[SpacetimeDB.Type]
 enum OpLogic
 {
     And,
@@ -88,6 +89,7 @@ partial struct Logic
     }
 }
 
+[SpacetimeDB.Type]
 enum OpUnary
 {
     Not,
@@ -129,11 +131,13 @@ public class Filter
         return bytes;
     }
 
-    byte ExprAsTableField(Expression expr) =>
+    (byte, Type) ExprAsTableField(Expression expr) =>
         expr switch
         {
-            MemberExpression { Expression: ParameterExpression, Member: { Name: var memberName } }
-                => (byte)Array.FindIndex(fieldTypeInfos, pair => pair.Key == memberName),
+            // LINQ inserts spurrious conversions in comparisons, so we need to unwrap them
+            UnaryExpression { NodeType: ExpressionType.Convert, Operand: var arg } => ExprAsTableField(arg),
+            MemberExpression { Expression: ParameterExpression, Member: { Name: var memberName }, Type: var type }
+                => ((byte)Array.FindIndex(fieldTypeInfos, pair => pair.Key == memberName), type),
             _
                 => throw new NotSupportedException(
                     "expected table field access in the left-hand side of a comparison"
@@ -152,11 +156,10 @@ public class Filter
 
     Cmp HandleCmp(BinaryExpression expr)
     {
-        var lhsFieldIndex = ExprAsTableField(expr.Left);
+        var (lhsFieldIndex, type) = ExprAsTableField(expr.Left);
 
-        // TODO: implement handling of conversions for non-int integer types (byte, short, etc.)
-        // I gave it a try, but ran into some bizarre crashes, so leaving for later.
         var rhs = ExprAsConstant(expr.Right);
+        rhs = Convert.ChangeType(rhs, type);
         var rhsWrite = fieldTypeInfos[lhsFieldIndex].Value.Write;
         var erasedRhs = new ErasedValue((writer) => rhsWrite(writer, rhs));
 
