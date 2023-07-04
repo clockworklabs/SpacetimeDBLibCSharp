@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 
 class ErasedValue
 {
-    static TypeInfo<ErasedValue> erasedTypeInfo = new TypeInfo<ErasedValue>(
+    private static readonly TypeInfo<ErasedValue> erasedTypeInfo = new TypeInfo<ErasedValue>(
         // uninhabited type (sum type with zero variants)
         // we don't really intent to use it but need to put something here to conform to the GetSatsTypeInfo() "interface"
         new SumType(),
@@ -18,7 +18,7 @@ class ErasedValue
 
     public static TypeInfo<ErasedValue> GetSatsTypeInfo() => erasedTypeInfo;
 
-    private Action<BinaryWriter> write;
+    private readonly Action<BinaryWriter> write;
 
     public ErasedValue(Action<BinaryWriter> write)
     {
@@ -32,8 +32,8 @@ partial struct Rhs : SpacetimeDB.TaggedEnum<(ErasedValue Value, byte Field)> { }
 [SpacetimeDB.Type]
 partial struct CmpArgs
 {
-    byte LhsField;
-    Rhs Rhs;
+    public byte LhsField;
+    public Rhs Rhs;
 
     public CmpArgs(byte lhsField, Rhs rhs)
     {
@@ -42,6 +42,7 @@ partial struct CmpArgs
     }
 }
 
+[SpacetimeDB.Type]
 enum OpCmp
 {
     Eq,
@@ -55,12 +56,12 @@ enum OpCmp
 [SpacetimeDB.Type]
 partial struct Cmp
 {
-    /* OpCmp */byte op;
-    CmpArgs args;
+    public OpCmp op;
+    public CmpArgs args;
 
     public Cmp(OpCmp op, CmpArgs args)
     {
-        this.op = (byte)op;
+        this.op = op;
         this.args = args;
     }
 }
@@ -74,16 +75,16 @@ enum OpLogic
 [SpacetimeDB.Type]
 partial struct Logic
 {
-    ExprBox lhs;
+    public Expr lhs;
 
-    /* OpLogic */byte op;
-    ExprBox rhs;
+    public OpLogic op;
+    public Expr rhs;
 
     public Logic(Expr lhs, OpLogic op, Expr rhs)
     {
-        this.lhs = new ExprBox(lhs);
-        this.op = (byte)op;
-        this.rhs = new ExprBox(rhs);
+        this.lhs = lhs;
+        this.op = op;
+        this.rhs = rhs;
     }
 }
 
@@ -95,34 +96,22 @@ enum OpUnary
 [SpacetimeDB.Type]
 partial struct Unary
 {
-    /* OpUnary */byte op;
-    ExprBox arg;
+    public OpUnary op;
+    public Expr arg;
 
     public Unary(OpUnary op, Expr arg)
     {
-        this.op = (byte)op;
-        this.arg = new ExprBox(arg);
+        this.op = op;
+        this.arg = arg;
     }
 }
 
 [SpacetimeDB.Type]
 partial struct Expr : SpacetimeDB.TaggedEnum<(Cmp Cmp, Logic Logic, Unary Unary)> { }
 
-struct FieldDesc
-{
-    string name;
-    Action<BinaryWriter, object> write;
-
-    internal FieldDesc(string name, Action<BinaryWriter, object> write)
-    {
-        this.name = name;
-        this.write = write;
-    }
-}
-
 public class Filter
 {
-    KeyValuePair<string, TypeInfo<object?>>[] fieldTypeInfos;
+    private readonly KeyValuePair<string, TypeInfo<object?>>[] fieldTypeInfos;
 
     private Filter(KeyValuePair<string, TypeInfo<object?>>[] fieldTypeInfos)
     {
@@ -240,27 +229,4 @@ public class Filter
             UnaryExpression unExpr => HandleUnary(unExpr),
             _ => throw new NotSupportedException("unsupported expression")
         };
-}
-
-partial class ExprBox
-{
-    public Expr deref;
-
-    // Note: Expr.GetSatsTypeInfo() is intentionally not stored
-    // in a variable - it would cause an infinite recursion during
-    // Expr.GetSatsTypeInfo() initialization.
-    public static TypeInfo<ExprBox> GetSatsTypeInfo() =>
-        Typespace.RegisterType(
-            () =>
-                new TypeInfo<ExprBox>(
-                    new AlgebraicTypeRef(0),
-                    (reader) => new ExprBox(Expr.GetSatsTypeInfo().Read(reader)),
-                    (writer, value) => Expr.GetSatsTypeInfo().Write(writer, value.deref)
-                )
-        );
-
-    public ExprBox(Expr deref)
-    {
-        this.deref = deref;
-    }
 }
