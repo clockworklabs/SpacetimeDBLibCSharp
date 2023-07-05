@@ -317,23 +317,24 @@ namespace SpacetimeDB.SATS
             }
         }
 
-        public static TypeInfo<T[]> MakeArray<T>(TypeInfo<T> elementTypeInfo)
+        public static TypeInfo<A> MakeArrayLike<T, A>(
+            Func<IEnumerable<T>, A> create,
+            TypeInfo<T> elementTypeInfo
+        )
+            where A : ICollection<T>
         {
-            return new TypeInfo<T[]>(
+            return new TypeInfo<A>(
                 new BuiltinType { Array = elementTypeInfo.AlgebraicType },
-                (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToArray(),
+                (reader) => create(ReadEnumerable(reader, elementTypeInfo.Read)),
                 (writer, array) => WriteEnumerable(writer, array, elementTypeInfo.Write)
             );
         }
 
-        public static TypeInfo<List<T>> MakeList<T>(TypeInfo<T> elementTypeInfo)
-        {
-            return new TypeInfo<List<T>>(
-                new BuiltinType { Array = elementTypeInfo.AlgebraicType },
-                (reader) => ReadEnumerable(reader, elementTypeInfo.Read).ToList(),
-                (writer, list) => WriteEnumerable(writer, list, elementTypeInfo.Write)
-            );
-        }
+        public static TypeInfo<T[]> MakeArray<T>(TypeInfo<T> elementTypeInfo) =>
+            MakeArrayLike(Enumerable.ToArray, elementTypeInfo);
+
+        public static TypeInfo<List<T>> MakeList<T>(TypeInfo<T> elementTypeInfo) =>
+            MakeArrayLike(Enumerable.ToList, elementTypeInfo);
 
         public static TypeInfo<Dictionary<K, V>> MakeMap<K, V>(TypeInfo<K> key, TypeInfo<V> value)
             where K : notnull
