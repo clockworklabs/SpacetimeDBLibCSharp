@@ -181,14 +181,35 @@ public static class Runtime
         [CallerLineNumber] uint lineNumber = 0
     );
 
+    public struct Identity : IEquatable<Identity>
+    {
+        private readonly byte[] bytes;
+
+        public Identity(byte[] bytes) => this.bytes = bytes;
+
+        public bool Equals(Identity other) =>
+            StructuralComparisons.StructuralEqualityComparer.Equals(bytes, other.bytes);
+
+        public override bool Equals(object obj) => obj is Identity other && Equals(other);
+
+        public static bool operator==(Identity left, Identity right) => left.Equals(right);
+
+        public static bool operator!=(Identity left, Identity right) => !left.Equals(right);
+
+        public override int GetHashCode() =>
+            StructuralComparisons.StructuralEqualityComparer.GetHashCode(bytes);
+
+        public override string ToString() => BitConverter.ToString(bytes);
+    }
+
     public class DbEventArgs : EventArgs
     {
-        public readonly byte[] Sender;
+        public readonly Identity Sender;
         public readonly DateTimeOffset Time;
 
         public DbEventArgs(byte[] senderIdentity, ulong timestamp_us)
         {
-            Sender = senderIdentity;
+            Sender = new Identity(senderIdentity);
             // timestamp is in microseconds; the easiest way to convert those w/o losing precision is to get Unix origin and add ticks which are 0.1ms each.
             Time = DateTimeOffset.UnixEpoch.AddTicks(10 * (long)timestamp_us);
         }
