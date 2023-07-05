@@ -190,7 +190,7 @@ public static class Runtime
         public bool Equals(Identity other) =>
             StructuralComparisons.StructuralEqualityComparer.Equals(bytes, other.bytes);
 
-        public override bool Equals(object obj) => obj is Identity other && Equals(other);
+        public override bool Equals(object? obj) => obj is Identity other && Equals(other);
 
         public static bool operator==(Identity left, Identity right) => left.Equals(right);
 
