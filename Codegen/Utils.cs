@@ -64,7 +64,6 @@ static class Utils
                     SpecialType.System_UInt32 => "SpacetimeDB.SATS.BuiltinType.U32TypeInfo",
                     SpecialType.System_Int64 => "SpacetimeDB.SATS.BuiltinType.I64TypeInfo",
                     SpecialType.System_UInt64 => "SpacetimeDB.SATS.BuiltinType.U64TypeInfo",
-                    // TODO: IU128
                     SpecialType.System_Single
                         => "SpacetimeDB.SATS.BuiltinType.F32TypeInfo",
                     SpecialType.System_Double => "SpacetimeDB.SATS.BuiltinType.F64TypeInfo",
