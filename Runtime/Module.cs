@@ -28,6 +28,10 @@ public partial struct TableDef
     AlgebraicTypeRef Data;
     ColumnIndexKind[] ColumnAttrs;
     IndexDef[] Indices;
+    // "system" | "user"
+    string TableType;
+    // "public" | "private"
+    string TableAccess;
 
     public TableDef(
         string name,
@@ -40,6 +44,8 @@ public partial struct TableDef
         Data = type;
         ColumnAttrs = columnAttrs;
         Indices = indices;
+        TableType = "user";
+        TableAccess = name.StartsWith('_') ? "private" : "public";
     }
 }
 

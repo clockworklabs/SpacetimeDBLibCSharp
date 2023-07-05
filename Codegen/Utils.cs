@@ -84,7 +84,7 @@ static class Utils
                                         a.AttributeClass?.ToDisplayString()
                                         == "SpacetimeDB.TypeAttribute"
                                 )
-                        => $"SpacetimeDB.SATS.BuiltinType.MakeEnum<{type}, {namedType.EnumUnderlyingType}>({GetTypeInfo(namedType.EnumUnderlyingType)})",
+                        => $"SpacetimeDB.SATS.BuiltinType.MakeEnum<{type}>()",
                     SpecialType.None
                         => $"{type.OriginalDefinition.ToString() switch
                     {

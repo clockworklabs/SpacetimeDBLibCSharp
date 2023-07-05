@@ -362,9 +362,8 @@ namespace SpacetimeDB.SATS
         private static Dictionary<Type, object> enumTypeInfoCache = new();
         private static AlgebraicType unitType = Unit.GetSatsTypeInfo().AlgebraicType;
 
-        public static TypeInfo<T> MakeEnum<T, Base>(TypeInfo<Base> baseTypeInfo)
+        public static TypeInfo<T> MakeEnum<T>()
             where T : struct, Enum, IConvertible
-            where Base : struct
         {
             if (enumTypeInfoCache.TryGetValue(typeof(T), out var cached))
             {
@@ -386,9 +385,8 @@ namespace SpacetimeDB.SATS
 
             var typeInfo = new TypeInfo<T>(
                 typeRef,
-                (reader) => (T)Enum.ToObject(typeof(T), baseTypeInfo.Read(reader)),
-                (writer, value) =>
-                    baseTypeInfo.Write(writer, (Base)Convert.ChangeType(value, typeof(Base)))
+                (reader) => (T)Enum.ToObject(typeof(T), reader.ReadByte()),
+                (writer, value) => writer.Write(Convert.ToByte(value))
             );
 
             enumTypeInfoCache[typeof(T)] = typeInfo;

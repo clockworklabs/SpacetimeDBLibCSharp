@@ -132,8 +132,8 @@ public class Type : IIncrementalGenerator
                             new
                             {
                                 m.Name,
-                                Read = $"{m.Name} = fieldTypeInfo!.{m.Name}.Read(reader),",
-                                Write = $"fieldTypeInfo!.{m.Name}.Write(writer, value.{m.Name});"
+                                Read = $"{m.Name} = fieldTypeInfo.{m.Name}.Read(reader),",
+                                Write = $"fieldTypeInfo.{m.Name}.Write(writer, value.{m.Name});"
                             }
                     );
 
