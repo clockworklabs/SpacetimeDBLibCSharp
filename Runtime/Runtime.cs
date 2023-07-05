@@ -34,7 +34,7 @@ public static class Runtime
     );
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern byte[] SeekEq(uint table_id, uint col_id, byte[] value);
+    public static extern byte[] IterByColEq(uint table_id, uint col_id, byte[] value);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
     public extern static void Insert(uint tableId, byte[] row);
@@ -46,12 +46,12 @@ public static class Runtime
     public static extern void DeleteValue(uint table_id, byte[] row);
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    public static extern uint DeleteEq(uint tableId, uint colId, byte[] value);
+    public static extern uint DeleteByColEq(uint tableId, uint colId, byte[] value);
 
-    public static bool UpdateEq(uint tableId, uint colId, byte[] value, byte[] row)
+    public static bool UpdateByColEq(uint tableId, uint colId, byte[] value, byte[] row)
     {
         // Just like in Rust bindings, updating is just deleting and inserting for now.
-        if (DeleteEq(tableId, colId, value) > 0)
+        if (DeleteByColEq(tableId, colId, value) > 0)
         {
             Insert(tableId, row);
             return true;

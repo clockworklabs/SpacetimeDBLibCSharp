@@ -120,7 +120,7 @@ public class Module : IIncrementalGenerator
 
                             public static IEnumerable<{t.Name}> Iter() =>
                                 new SpacetimeDB.Runtime.RawTableIter(tableId.Value)
-                                .Select(GetSatsTypeInfo().ReadBytes);
+                                .SelectMany(GetSatsTypeInfo().ReadBytes);
 
                             private static readonly Lazy<KeyValuePair<string, SpacetimeDB.SATS.TypeInfo<object?>>[]> fieldTypeInfos = new (() => new KeyValuePair<string, SpacetimeDB.SATS.TypeInfo<object?>>[] {{
                                 {string.Join("\n", t.Fields.Select(f => $"new (nameof({f.Name}), {f.TypeInfo}.EraseType()),"))}
@@ -128,7 +128,7 @@ public class Module : IIncrementalGenerator
 
                             public static IEnumerable<{t.Name}> Query(System.Linq.Expressions.Expression<Func<{t.Name}, bool>> filter) =>
                                 new SpacetimeDB.Runtime.RawTableIter(tableId.Value, SpacetimeDB.Filter.Filter.Compile<{t.Name}>(fieldTypeInfos.Value, filter))
-                                .Select(GetSatsTypeInfo().ReadBytes);
+                                .SelectMany(GetSatsTypeInfo().ReadBytes);
 
                             public void Insert() {{
                                 var typeInfo = GetSatsTypeInfo();
@@ -148,23 +148,28 @@ public class Module : IIncrementalGenerator
                         {
                             extensions +=
                                 $@"
-                                    public static {t.Name}? FindBy{f.Name}({f.Type} {f.Name}) {{
-                                        var raw = SpacetimeDB.Runtime.SeekEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}));
-                                        return raw.Length == 0 ? null : GetSatsTypeInfo().ReadBytes(raw);
-                                    }}
+                                    public static {t.Name}? FindBy{f.Name}({f.Type} {f.Name}) =>
+                                        GetSatsTypeInfo().ReadBytes(
+                                            SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
+                                        )
+                                        .SingleOrDefault();
 
                                     public static bool DeleteBy{f.Name}({f.Type} {f.Name}) =>
-                                        SpacetimeDB.Runtime.DeleteEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name})) > 0;
+                                        SpacetimeDB.Runtime.DeleteByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name})) > 0;
 
-                                    public static void UpdateBy{f.Name}({f.Type} {f.Name}, {t.Name} value) =>
-                                        SpacetimeDB.Runtime.UpdateEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
+                                    public static bool UpdateBy{f.Name}({f.Type} {f.Name}, {t.Name} value) =>
+                                        SpacetimeDB.Runtime.UpdateByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
                                 ";
                         }
                         else
                         {
-                            // TODO: add extensions for non-unique fields.
-                            // For now not adding as Rust does this filtering on Wasm side and
-                            // users can already do that via normal LINQ methods anyway.
+                            extensions +=
+                                $@"
+                                    public static IEnumerable<{t.Name}> FilterBy{f.Name}({f.Type} {f.Name}) =>
+                                        GetSatsTypeInfo().ReadBytes(
+                                            SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
+                                        );
+                                ";
                         }
                     }
 

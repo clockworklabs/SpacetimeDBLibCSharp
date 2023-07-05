@@ -142,20 +142,20 @@ static void stdb_create_index(MonoString* index_name_,
 }
 
 __attribute__((import_module("spacetime"),
-               import_name("_seek_eq"))) extern uint16_t
-_seek_eq(uint32_t table_id,
+               import_name("_iter_by_col_eq"))) extern uint16_t
+_iter_by_col_eq(uint32_t table_id,
          uint32_t col_id,
          const uint8_t* value,
          size_t value_len,
          Buffer* out);
 
-static MonoArray* stdb_seek_eq(uint32_t table_id,
+static MonoArray* stdb_iter_by_col_eq(uint32_t table_id,
                                uint32_t col_id,
                                MonoArray* value_) {
   Bytes value = to_bytes(value_);
 
   Buffer out;
-  uint16_t result = _seek_eq(table_id, col_id, value.ptr, value.len, &out);
+  uint16_t result = _iter_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
 
   check_result(result);
 
@@ -199,20 +199,20 @@ static void stdb_insert(uint32_t table_id, MonoArray* row_) {
 // }
 
 __attribute__((import_module("spacetime"),
-               import_name("_delete_eq"))) extern uint16_t
-_delete_eq(uint32_t table_id,
+               import_name("_delete_by_col_eq"))) extern uint16_t
+_delete_by_col_eq(uint32_t table_id,
            uint32_t col_id,
            const uint8_t* value,
            size_t value_len,
            uint32_t* out);
 
-static uint32_t stdb_delete_eq(uint32_t table_id,
+static uint32_t stdb_delete_by_col_eq(uint32_t table_id,
                                uint32_t col_id,
                                MonoArray* value_) {
   Bytes value = to_bytes(value_);
 
   uint32_t out;
-  uint16_t result = _delete_eq(table_id, col_id, value.ptr, value.len, &out);
+  uint16_t result = _delete_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
 
   check_result(result);
 
@@ -392,11 +392,11 @@ void mono_stdb_attach_bindings() {
   // ATTACH(stdb_create_table, "CreateTable");
   ATTACH(stdb_get_table_id, "GetTableId");
   ATTACH(stdb_create_index, "CreateIndex");
-  ATTACH(stdb_seek_eq, "SeekEq");
+  ATTACH(stdb_iter_by_col_eq, "IterByColEq");
   ATTACH(stdb_insert, "Insert");
   // ATTACH(stdb_delete_pk, "DeletePk");
   // ATTACH(stdb_delete_value, "DeleteValue");
-  ATTACH(stdb_delete_eq, "DeleteEq");
+  ATTACH(stdb_delete_by_col_eq, "DeleteByColEq");
   // ATTACH(stdb_delete_range, "DeleteRange");
   ATTACH(stdb_iter_start, "BufferIterStart");
   ATTACH(stdb_iter_start_filtered, "BufferIterStartFiltered");

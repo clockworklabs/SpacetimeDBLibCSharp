@@ -188,7 +188,7 @@ public static class FFI
             reducers[(int)id].Invoke(reader, new(sender_identity, timestamp));
             if (stream.Position != stream.Length)
             {
-                throw new Exception("Extra bytes in the input");
+                throw new Exception("Unrecognised extra bytes in the reducer arguments");
             }
             return null;
         }

@@ -26,16 +26,14 @@ namespace SpacetimeDB.SATS
             this.Write = write;
         }
 
-        public T ReadBytes(byte[] bytes)
+        public IEnumerable<T> ReadBytes(byte[] bytes)
         {
             using var stream = new MemoryStream(bytes);
             using var reader = new BinaryReader(stream);
-            var value = Read(reader);
-            if (stream.Position != stream.Length)
+            while (stream.Position < stream.Length)
             {
-                throw new Exception("Extra bytes in the input");
+                yield return Read(reader);
             }
-            return value;
         }
 
         public byte[] ToBytes(T value)
