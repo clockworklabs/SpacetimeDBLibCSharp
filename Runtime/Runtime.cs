@@ -262,7 +262,7 @@ public static class Runtime
         private readonly ulong handle;
 
         public ScheduleToken(string name, byte[] args, DateTimeOffset time) =>
-            ScheduleReducer(name, args, (ulong)(time - DateTimeOffset.UnixEpoch).Ticks, out handle);
+            ScheduleReducer(name, args, (ulong)((time - DateTimeOffset.UnixEpoch).Ticks / 10), out handle);
 
         public void Cancel() => CancelReducer(handle);
     }
