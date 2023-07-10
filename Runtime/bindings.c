@@ -144,18 +144,19 @@ static void stdb_create_index(MonoString* index_name_,
 __attribute__((import_module("spacetime"),
                import_name("_iter_by_col_eq"))) extern uint16_t
 _iter_by_col_eq(uint32_t table_id,
-         uint32_t col_id,
-         const uint8_t* value,
-         size_t value_len,
-         Buffer* out);
+                uint32_t col_id,
+                const uint8_t* value,
+                size_t value_len,
+                Buffer* out);
 
 static MonoArray* stdb_iter_by_col_eq(uint32_t table_id,
-                               uint32_t col_id,
-                               MonoArray* value_) {
+                                      uint32_t col_id,
+                                      MonoArray* value_) {
   Bytes value = to_bytes(value_);
 
   Buffer out;
-  uint16_t result = _iter_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
+  uint16_t result =
+      _iter_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
 
   check_result(result);
 
@@ -201,18 +202,19 @@ static void stdb_insert(uint32_t table_id, MonoArray* row_) {
 __attribute__((import_module("spacetime"),
                import_name("_delete_by_col_eq"))) extern uint16_t
 _delete_by_col_eq(uint32_t table_id,
-           uint32_t col_id,
-           const uint8_t* value,
-           size_t value_len,
-           uint32_t* out);
+                  uint32_t col_id,
+                  const uint8_t* value,
+                  size_t value_len,
+                  uint32_t* out);
 
 static uint32_t stdb_delete_by_col_eq(uint32_t table_id,
-                               uint32_t col_id,
-                               MonoArray* value_) {
+                                      uint32_t col_id,
+                                      MonoArray* value_) {
   Bytes value = to_bytes(value_);
 
   uint32_t out;
-  uint16_t result = _delete_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
+  uint16_t result =
+      _delete_by_col_eq(table_id, col_id, value.ptr, value.len, &out);
 
   check_result(result);
 
@@ -342,12 +344,16 @@ _schedule_reducer(const char* name,
                   uint64_t time,
                   ScheduleToken* out);
 
-static void stdb_schedule_reducer(MonoString* name_,
-                                  MonoArray* args_,
-                                  uint64_t time,
-                                  ScheduleToken* out) {
+static void stdb_schedule_reducer(
+    MonoString* name_,
+    MonoArray* args_,
+    // by-value uint64_t + other args corrupts stack in Mono's FFI for some
+    // reason pass by pointer instead
+    uint64_t* time_,
+    ScheduleToken* out) {
   String name = to_string(name_);
   Bytes args = to_bytes(args_);
+  uint64_t time = *time_;
 
   _schedule_reducer(name.ptr, name.len, args.ptr, args.len, time, out);
 
@@ -358,8 +364,8 @@ __attribute__((import_module("spacetime"),
                import_name("_cancel_reducer"))) extern void
 _cancel_reducer(ScheduleToken token);
 
-static void stdb_cancel_reducer(ScheduleToken token) {
-  _cancel_reducer(token);
+static void stdb_cancel_reducer(ScheduleToken* token) {
+  _cancel_reducer(*token);
 }
 
 __attribute__((import_module("spacetime"),
@@ -485,8 +491,8 @@ int32_t __imported_wasi_snapshot_preview1_environ_sizes_get(int32_t arg0,
 }
 
 int32_t __imported_wasi_snapshot_preview1_clock_res_get(int32_t arg0,
-                                                        uint64_t *timestamp) {
-    *timestamp = 1;
+                                                        uint64_t* timestamp) {
+  *timestamp = 1;
   return 0;
 }
 
@@ -769,5 +775,5 @@ __preinit__10_init_csharp() {
 
 // __attribute__((export_name("SPACETIME_ABI_VERSION"))) -
 // doesn't work on non-functions, must specify on command line
-const uint32_t SPACETIME_ABI_VERSION = /* 2.0 */ (2 << 16) | 0;
+const uint32_t SPACETIME_ABI_VERSION = /* 3.0 */ (3 << 16) | 0;
 const uint8_t SPACETIME_ABI_VERSION_IS_ADDR = 1;

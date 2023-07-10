@@ -302,8 +302,6 @@ public class Module : IIncrementalGenerator
             }
         );
 
-        /* Scheduling doesn't work yet, presumably because we use index-based reducers instead of named ones.
-
         reducers
             .Select(
                 (r, ct) =>
@@ -322,6 +320,5 @@ public class Module : IIncrementalGenerator
                     )
             )
             .RegisterSourceOutputs(context);
-            */
     }
 }

@@ -192,9 +192,9 @@ public static class Runtime
 
         public override bool Equals(object? obj) => obj is Identity other && Equals(other);
 
-        public static bool operator==(Identity left, Identity right) => left.Equals(right);
+        public static bool operator ==(Identity left, Identity right) => left.Equals(right);
 
-        public static bool operator!=(Identity left, Identity right) => !left.Equals(right);
+        public static bool operator !=(Identity left, Identity right) => !left.Equals(right);
 
         public override int GetHashCode() =>
             StructuralComparisons.StructuralEqualityComparer.GetHashCode(bytes);
@@ -250,19 +250,29 @@ public static class Runtime
     private extern static void ScheduleReducer(
         string name,
         byte[] args,
-        ulong time,
+        // by-value ulong + other args corrupts stack in Mono's FFI for some reason
+        // pass by reference (`in`) instead
+        in ulong time,
         out ulong handle
     );
 
     [MethodImpl(MethodImplOptions.InternalCall)]
-    private extern static void CancelReducer(ulong handle);
+    private extern static void CancelReducer(
+        // see ScheduleReducer for why we're using reference here
+        in ulong handle
+    );
 
     public class ScheduleToken
     {
         private readonly ulong handle;
 
         public ScheduleToken(string name, byte[] args, DateTimeOffset time) =>
-            ScheduleReducer(name, args, (ulong)((time - DateTimeOffset.UnixEpoch).Ticks / 10), out handle);
+            ScheduleReducer(
+                name,
+                args,
+                (ulong)((time - DateTimeOffset.UnixEpoch).Ticks / 10),
+                out handle
+            );
 
         public void Cancel() => CancelReducer(handle);
     }
