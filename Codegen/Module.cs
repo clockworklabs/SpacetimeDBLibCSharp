@@ -111,7 +111,7 @@ public class Module : IIncrementalGenerator
                 (t, ct) =>
                 {
                     var autoIncFields = t.Fields
-                        .Where(f => f.IndexKind == "Identity" || f.IndexKind == "AutoInc")
+                        .Where(f => f.IndexKind == "Identity" || f.IndexKind == "AutoInc" || f.IndexKind == "PrimaryKeyAuto")
                         .Select(f => f.Name);
 
                     var extensions =
@@ -144,7 +144,7 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity")
+                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity" || f.IndexKind == "PrimaryKey" || f.IndexKind == "PrimaryKeyAuto")
                         {
                             extensions +=
                                 $@"
@@ -162,16 +162,14 @@ public class Module : IIncrementalGenerator
                                         SpacetimeDB.Runtime.UpdateByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
                                 ";
                         }
-                        else
-                        {
-                            extensions +=
-                                $@"
-                                    public static IEnumerable<{t.Name}> FilterBy{f.Name}({f.Type} {f.Name}) =>
-                                        GetSatsTypeInfo().ReadBytes(
-                                            SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
-                                        );
-                                ";
-                        }
+
+                        extensions +=
+                            $@"
+                                public static IEnumerable<{t.Name}> FilterBy{f.Name}({f.Type} {f.Name}) =>
+                                    GetSatsTypeInfo().ReadBytes(
+                                        SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
+                                    );
+                            ";
                     }
 
                     return new KeyValuePair<string, string>(

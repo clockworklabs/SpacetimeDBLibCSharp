@@ -135,6 +135,12 @@ public enum ColumnIndexKind : byte
 
     /// Generate the next [Sequence]
     AutoInc,
+
+    /// Primary key column (implies Unique)
+    PrimaryKey = 5,
+
+    /// PrimaryKey + AutoInc
+    PrimaryKeyAuto = 6,
 }
 
 public static class ReducerKind
