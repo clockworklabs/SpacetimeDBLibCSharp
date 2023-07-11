@@ -303,23 +303,41 @@ public class Module : IIncrementalGenerator
             }
         );
 
-        reducers
-            .Select(
-                (r, ct) =>
-                    new KeyValuePair<string, string>(
-                        r.FullName,
-                        r.Scope.GenerateExtensions(
-                            $@"
-                            public static SpacetimeDB.Runtime.ScheduleToken Schedule{r.Name}(DateTimeOffset time{string.Join("", r.Args.Select(a => $", {a.Type} {a.Name}"))}) {{
-                                using var stream = new MemoryStream();
-                                using var writer = new BinaryWriter(stream);
-                                {string.Join("\n", r.Args.Where(a => !a.IsDbEvent).Select(a => $"{GetTypeInfo(a.Type)}.Write(writer, {a.Name});"))}
-                                return new(""{r.Name}"", stream.ToArray(), time);
-                            }}
-                        "
-                        )
-                    )
-            )
-            .RegisterSourceOutputs(context);
+        context.RegisterSourceOutput(
+            reducers.Select((r, ct) => $@"
+                public SpacetimeDB.Runtime.ScheduleToken {r.Name}({string.Join(", ", r.Args.Select(a => $"{a.Type} {a.Name}"))}) => ScheduleWithArgs(
+                    nameof({r.Name}),
+                    writer => {{
+                        {string.Join("\n", r.Args.Where(a => !a.IsDbEvent).Select(a => $"{GetTypeInfo(a.Type)}.Write(writer, {a.Name});"))}
+                    }}
+                );
+            ").Collect(),
+
+            (context, reducers) => context.AddSource("Schedule.cs", $@"
+                using System;
+                using System.IO;
+
+                public class Schedule {{
+                    public DateTimeOffset Time;
+
+                    public Schedule(DateTimeOffset time) {{
+                        Time = time;
+                    }}
+
+                    public static Schedule At(DateTimeOffset time) => new Schedule(time);
+
+                    private SpacetimeDB.Runtime.ScheduleToken ScheduleWithArgs(string name, Action<BinaryWriter> writeArgs) {{
+                        using var stream = new MemoryStream();
+                        using var writer = new BinaryWriter(stream);
+
+                        writeArgs(writer);
+
+                        return new(name, stream.ToArray(), Time);
+                    }}
+
+                    {string.Join("\n", reducers.Select((r, ct) => r))}
+                }}
+            ")
+        );
     }
 }
