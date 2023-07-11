@@ -111,7 +111,12 @@ public class Module : IIncrementalGenerator
                 (t, ct) =>
                 {
                     var autoIncFields = t.Fields
-                        .Where(f => f.IndexKind == "Identity" || f.IndexKind == "AutoInc" || f.IndexKind == "PrimaryKeyAuto")
+                        .Where(
+                            f =>
+                                f.IndexKind == "Identity"
+                                || f.IndexKind == "AutoInc"
+                                || f.IndexKind == "PrimaryKeyAuto"
+                        )
                         .Select(f => f.Name);
 
                     var extensions =
@@ -144,7 +149,12 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (f.IndexKind == "Unique" || f.IndexKind == "Identity" || f.IndexKind == "PrimaryKey" || f.IndexKind == "PrimaryKeyAuto")
+                        if (
+                            f.IndexKind == "Unique"
+                            || f.IndexKind == "Identity"
+                            || f.IndexKind == "PrimaryKey"
+                            || f.IndexKind == "PrimaryKeyAuto"
+                        )
                         {
                             extensions +=
                                 $@"
@@ -308,7 +318,7 @@ public class Module : IIncrementalGenerator
                         r.FullName,
                         r.Scope.GenerateExtensions(
                             $@"
-                            public static SpacetimeDB.Runtime.ScheduleToken Schedule{r.Name}(DateTimeOffset time{string.Join("", r.Args.Select(a => $", {a.Type} {a.Name}"))}) {{
+                            public static SpacetimeDB.Runtime.ScheduleToken Schedule{r.Name}(DateTimeOffset time{string.Join("", r.Args.Where(a => !a.IsDbEvent).Select(a => $", {a.Type} {a.Name}"))}) {{
                                 using var stream = new MemoryStream();
                                 using var writer = new BinaryWriter(stream);
                                 {string.Join("\n", r.Args.Where(a => !a.IsDbEvent).Select(a => $"{GetTypeInfo(a.Type)}.Write(writer, {a.Name});"))}
