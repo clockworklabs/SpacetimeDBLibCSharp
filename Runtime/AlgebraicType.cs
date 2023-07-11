@@ -6,8 +6,17 @@ using System.Text;
 
 namespace SpacetimeDB.SATS
 {
-    [SpacetimeDB.Type]
-    public partial struct Unit { }
+    // [SpacetimeDB.Type] - we don't want this to be referenced via AlgebraicTypeRef as any other struct
+    // because SpacetimeDB CLI `generate` command only recognises unit structs if they're inline.
+    public partial struct Unit {
+        private static TypeInfo<Unit> satsTypeInfo = new(
+            new ProductType(),
+            reader => default,
+            (writer, value) => { }
+        );
+
+        public static TypeInfo<Unit> GetSatsTypeInfo() => satsTypeInfo;
+    }
 
     public class TypeInfo<T>
     {
