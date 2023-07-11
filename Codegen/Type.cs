@@ -22,27 +22,52 @@ public class Type : IIncrementalGenerator
 {
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
+        WithAttrAndPredicate(
+            context,
+            "SpacetimeDB.TypeAttribute",
+            (node) =>
+            {
+                // structs and classes should be always processed
+                if (!(node is EnumDeclarationSyntax enumType))
+                    return true;
+
+                // Ensure variants are contiguous as SATS enums don't support explicit tags.
+                if (enumType.Members.Any(m => m.EqualsValue is not null))
+                {
+                    throw new InvalidOperationException(
+                        "[SpacetimeDB.Type] enums cannot have explicit values."
+                    );
+                }
+
+                // Ensure all enums fit in `byte` as that's what SATS uses for tags.
+                if (enumType.Members.Count > 256)
+                {
+                    throw new InvalidOperationException(
+                        "[SpacetimeDB.Type] enums cannot have more than 256 variants."
+                    );
+                }
+
+                // Check that enums are compatible with SATS but otherwise skip from extra processing.
+                return false;
+            }
+        );
+
+        // Any table should be treated as a type without an explicit [Type] attribute.
+        WithAttrAndPredicate(context, "SpacetimeDB.TableAttribute", (_node) => true);
+    }
+
+    public void WithAttrAndPredicate(
+        IncrementalGeneratorInitializationContext context,
+        string fullyQualifiedMetadataName,
+        Func<SyntaxNode, bool> predicate
+    )
+    {
         context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                fullyQualifiedMetadataName: "SpacetimeDB.TypeAttribute",
-                predicate: (node, ct) => true, // already covered by attribute restrictions
+                fullyQualifiedMetadataName,
+                predicate: (node, ct) => predicate(node),
                 transform: (context, ct) =>
                 {
-                    if (context.TargetNode is EnumDeclarationSyntax enumType)
-                    {
-                        // Ensure variants are contiguous as SATS enums don't support explicit tags.
-                        if (enumType.Members.Any(m => m.EqualsValue is not null)) {
-                            throw new InvalidOperationException("[SpacetimeDB.Type] enums cannot have explicit values.");
-                        }
-
-                        // Ensure all enums fit in `byte` as that's what SATS uses for tags.
-                        if (enumType.Members.Count > 256) {
-                            throw new InvalidOperationException("[SpacetimeDB.Type] enums cannot have more than 256 variants.");
-                        }
-
-                        return null;
-                    }
-
                     var type = (TypeDeclarationSyntax)context.TargetNode;
 
                     // Check if type implements generic `SpacetimeDB.TaggedEnum<Variants>` and, if so, extract the `Variants` type.
@@ -114,12 +139,9 @@ public class Type : IIncrementalGenerator
                     };
                 }
             )
-            .Where(type => type is not null)
             .Select(
-                (type_, ct) =>
+                (type, ct) =>
                 {
-                    var type = type_!;
-
                     var typeKind = type.IsTaggedEnum ? "Sum" : "Product";
 
                     string read,
