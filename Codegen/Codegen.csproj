@@ -6,7 +6,7 @@
     <IsRoslynComponent>true</IsRoslynComponent>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
-    <AssemblyName>SpacetimeDB.Codegen.0039</AssemblyName>
+    <AssemblyName>SpacetimeDB.Codegen.0056</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>

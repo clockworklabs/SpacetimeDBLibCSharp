@@ -54,7 +54,7 @@ public class Module : IIncrementalGenerator
 
                         var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
 
-                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc")
+                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc" || attrVariantName == "PrimaryKeyAuto")
                         {
                             var isValidForAutoInc = type.SpecialType switch
                             {
@@ -140,10 +140,11 @@ public class Module : IIncrementalGenerator
                                 var bytes = typeInfo.ToBytes(this);
                                 SpacetimeDB.Runtime.Insert(tableId.Value, bytes);
                                 // bytes should contain modified value now with autoinc fields updated
-                                {(autoIncFields.Any() ? "" : $@"
-                                    var newInstance = typeInfo.ReadBytes(bytes);
+                                {(autoIncFields.Any() ? $@"
+                                    var newInstance = typeInfo.ReadBytes(bytes).SingleOrDefault();
+
                                     {string.Join("\n", autoIncFields.Select(f => $"this.{f} = newInstance.{f};"))}
-                                ")}
+                                " : "")}
                             }}
                         ";
 
