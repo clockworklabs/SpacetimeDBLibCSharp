@@ -152,6 +152,7 @@ public class Module : IIncrementalGenerator
                                         GetSatsTypeInfo().ReadBytes(
                                             SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
                                         )
+                                        .Cast<{t.Name}?>()
                                         .SingleOrDefault();
 
                                     public static bool DeleteBy{f.Name}({f.Type} {f.Name}) =>
