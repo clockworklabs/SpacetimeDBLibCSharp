@@ -137,10 +137,10 @@ public enum ColumnIndexKind : byte
     AutoInc,
 
     /// Primary key column (implies Unique)
-    PrimaryKey = 5,
+    PrimaryKey,
 
     /// PrimaryKey + AutoInc
-    PrimaryKeyAuto = 6,
+    PrimaryKeyAuto,
 }
 
 public static class ReducerKind
