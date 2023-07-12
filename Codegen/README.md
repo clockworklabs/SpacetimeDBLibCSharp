@@ -21,16 +21,15 @@ This project contains Roslyn [incremental source generators](https://github.com/
 
   All of those properties are stored in a compact `byte` + `object` pair representation.
 
-- `[SpacetimeDB.Table]` - generates code to register this table in the `FFI` upon startup so that they can be enumerated by the `__describe_module__` FFI API. It expects that the table is tagged with `[SpacetimeDB.Type]` as well.
+- `[SpacetimeDB.Table]` - generates code to register this table in the `FFI` upon startup so that they can be enumerated by the `__describe_module__` FFI API. It implies `[SpacetimeDB.Type]`, so you must not specify both attributes on the same struct.
 
-  The fields can be marked with `[SpacetimeDB.ColumnIndex]` and those will be detected by the codegen and passed on to the runtime as well. Example:
+  The fields can be marked with `[SpacetimeDB.ColumnAttrs]` and those will be detected by the codegen and passed on to the runtime as well. Example:
 
   ```csharp
   [SpacetimeDB.Table]
-  [SpacetimeDB.Type]
   public partial struct Person
   {
-      [SpacetimeDB.ColumnIndex(ColumnIndexKind.Identity)]
+      [SpacetimeDB.Column(ColumnAttrs.Identity)]
       public int Id;
       public string Name;
   }

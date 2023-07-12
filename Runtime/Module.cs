@@ -25,8 +25,9 @@ public partial struct IndexDef
 public partial struct TableDef
 {
     // TODO: merge those representations once https://github.com/clockworklabs/SpacetimeDB/pull/72 is merged.
+    // Careful: the names of the variant must match those in the Codegen/Module.cs
     [SpacetimeDB.Type]
-    public enum ColumnIndexKindAbi : byte
+    public enum ColumnAttrsAbi : byte
     {
         UnSet,
 
@@ -51,7 +52,7 @@ public partial struct TableDef
 
     string Name;
     AlgebraicTypeRef Data;
-    ColumnIndexKindAbi[] ColumnAttrs;
+    ColumnAttrsAbi[] ColumnAttrs;
     IndexDef[] Indices;
 
     // "system" | "user"
@@ -63,7 +64,7 @@ public partial struct TableDef
     public TableDef(
         string name,
         AlgebraicTypeRef type,
-        ColumnIndexKindAbi[] columnAttrs,
+        ColumnAttrsAbi[] columnAttrs,
         IndexDef[] indices
     )
     {
@@ -148,7 +149,7 @@ public partial struct ModuleDef
 }
 
 [System.Flags]
-public enum ColumnIndexKind : byte
+public enum ColumnAttrs : byte
 {
     UnSet = 0b0000,
     Indexed = 0b0001,

@@ -8,7 +8,7 @@ using System.Linq;
 using static Utils;
 
 [System.Flags]
-enum ColumnIndexKind : byte
+enum ColumnAttrs : byte
 {
     UnSet = 0b0000,
     Indexed = 0b0001,
@@ -45,15 +45,15 @@ public class Module : IIncrementalGenerator
                             .Where(
                                 a =>
                                     a.AttributeClass?.ToDisplayString()
-                                    == "SpacetimeDB.ColumnIndexAttribute"
+                                    == "SpacetimeDB.ColumnAttribute"
                             )
                             .Select(
                                 a =>
-                                    (ColumnIndexKind)a.ConstructorArguments[0].Value!
+                                    (ColumnAttrs)a.ConstructorArguments[0].Value!
                             )
                             .SingleOrDefault();
 
-                        if (indexKind.HasFlag(ColumnIndexKind.AutoInc))
+                        if (indexKind.HasFlag(ColumnAttrs.AutoInc))
                         {
                             var isValidForAutoInc = f.Type.SpecialType switch
                             {
@@ -107,7 +107,7 @@ public class Module : IIncrementalGenerator
                 (t, ct) =>
                 {
                     var autoIncFields = t.Fields
-                        .Where(f => f.IndexKind.HasFlag(ColumnIndexKind.AutoInc))
+                        .Where(f => f.IndexKind.HasFlag(ColumnAttrs.AutoInc))
                         .Select(f => f.Name);
 
                     var extensions =
@@ -141,7 +141,7 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (f.IndexKind.HasFlag(ColumnIndexKind.Unique))
+                        if (f.IndexKind.HasFlag(ColumnAttrs.Unique))
                         {
                             extensions +=
                                 $@"
@@ -184,7 +184,7 @@ public class Module : IIncrementalGenerator
                 FFI.RegisterTable(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
                     {t.FullName}.GetSatsTypeInfo().AlgebraicType.TypeRef,
-                    new SpacetimeDB.Module.TableDef.ColumnIndexKindAbi[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.TableDef.ColumnIndexKindAbi.{f.IndexKind}"))} }},
+                    new SpacetimeDB.Module.TableDef.ColumnAttrsAbi[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.TableDef.ColumnAttrsAbi.{f.IndexKind}"))} }},
                     new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
             "

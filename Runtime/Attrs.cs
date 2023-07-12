@@ -27,12 +27,12 @@ public interface TaggedEnum<Variants>
     where Variants : struct { }
 
 [AttributeUsage(AttributeTargets.Field, Inherited = false, AllowMultiple = false)]
-public sealed class ColumnIndexAttribute : Attribute
+public sealed class ColumnAttribute : Attribute
 {
-    public ColumnIndexAttribute(ColumnIndexKind type)
+    public ColumnAttribute(ColumnAttrs type)
     {
         Type = type;
     }
 
-    public ColumnIndexKind Type { get; }
+    public ColumnAttrs Type { get; }
 }
