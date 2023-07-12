@@ -24,19 +24,46 @@ public partial struct IndexDef
 [SpacetimeDB.Type]
 public partial struct TableDef
 {
+    // TODO: merge those representations once https://github.com/clockworklabs/SpacetimeDB/pull/72 is merged.
+    [SpacetimeDB.Type]
+    public enum ColumnIndexKindAbi : byte
+    {
+        UnSet,
+
+        /// Unique + AutoInc
+        Identity,
+
+        /// Index unique
+        Unique,
+
+        ///  Index no unique
+        Indexed,
+
+        /// Generate the next [Sequence]
+        AutoInc,
+
+        /// Primary key column (implies Unique)
+        PrimaryKey,
+
+        /// PrimaryKey + AutoInc
+        PrimaryKeyAuto,
+    }
+
     string Name;
     AlgebraicTypeRef Data;
-    ColumnIndexKind[] ColumnAttrs;
+    ColumnIndexKindAbi[] ColumnAttrs;
     IndexDef[] Indices;
+
     // "system" | "user"
     string TableType;
+
     // "public" | "private"
     string TableAccess;
 
     public TableDef(
         string name,
         AlgebraicTypeRef type,
-        ColumnIndexKind[] columnAttrs,
+        ColumnIndexKindAbi[] columnAttrs,
         IndexDef[] indices
     )
     {
@@ -82,7 +109,8 @@ public partial struct ModuleDef
 
     public ModuleDef() { }
 
-    public AlgebraicTypeRef AllocTypeRef() {
+    public AlgebraicTypeRef AllocTypeRef()
+    {
         var index = Types.Count;
         var typeRef = new AlgebraicTypeRef(index);
         // uninhabited type, to be replaced by a real type
@@ -119,28 +147,16 @@ public partial struct ModuleDef
     }
 }
 
-[SpacetimeDB.Type]
+[System.Flags]
 public enum ColumnIndexKind : byte
 {
-    UnSet,
-
-    /// Unique + AutoInc
-    Identity,
-
-    /// Index unique
-    Unique,
-
-    ///  Index no unique
-    Indexed,
-
-    /// Generate the next [Sequence]
-    AutoInc,
-
-    /// Primary key column (implies Unique)
-    PrimaryKey,
-
-    /// PrimaryKey + AutoInc
-    PrimaryKeyAuto,
+    UnSet = 0b0000,
+    Indexed = 0b0001,
+    AutoInc = 0b0010,
+    Unique = Indexed | 0b0100,
+    Identity = Unique | AutoInc,
+    PrimaryKey = Unique | 0b1000,
+    PrimaryKeyAuto = PrimaryKey | AutoInc,
 }
 
 public static class ReducerKind
@@ -170,17 +186,22 @@ public static class FFI
 
     public static AlgebraicTypeRef AllocTypeRef() => module.AllocTypeRef();
 
-    public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type) => module.SetTypeRef<T>(typeRef, type);
+    public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type) =>
+        module.SetTypeRef<T>(typeRef, type);
 
     // Note: this is accessed by C bindings.
-    private static byte[] DescribeModule() {
+    private static byte[] DescribeModule()
+    {
         // replace `module` with a temporary internal module that will register ModuleDef, AlgebraicType and other internal types
         // during the ModuleDef.GetSatsTypeInfo() instead of exposing them via user's module.
         var userModule = module;
-        try {
+        try
+        {
             module = new();
             return ModuleDef.GetSatsTypeInfo().ToBytes(userModule);
-        } finally {
+        }
+        finally
+        {
             module = userModule;
         }
     }

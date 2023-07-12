@@ -7,31 +7,9 @@ using System.Collections.Generic;
 using System.Linq;
 using static Utils;
 
-// TODO: merge those representations once https://github.com/clockworklabs/SpacetimeDB/pull/72 is merged.
-enum ColumnIndexKindABI: byte {
-    UnSet,
-
-    /// Unique + AutoInc
-    Identity,
-
-    /// Index unique
-    Unique,
-
-    ///  Index no unique
-    Indexed,
-
-    /// Generate the next [Sequence]
-    AutoInc,
-
-    /// Primary key column (implies Unique)
-    PrimaryKey,
-
-    /// PrimaryKey + AutoInc
-    PrimaryKeyAuto,
-}
-
 [System.Flags]
-enum ColumnIndexKindBitflags: byte {
+enum ColumnIndexKind : byte
+{
     UnSet = 0b0000,
     Indexed = 0b0001,
     AutoInc = 0b0010,
@@ -53,39 +31,29 @@ public class Module : IIncrementalGenerator
             {
                 var table = (TypeDeclarationSyntax)context.TargetNode;
 
-                var resolvedTable = (ITypeSymbol?)
-                    context.SemanticModel.GetDeclaredSymbol(table) ?? throw new System.Exception("Could not resolve table");
+                var resolvedTable =
+                    (ITypeSymbol?)context.SemanticModel.GetDeclaredSymbol(table)
+                    ?? throw new System.Exception("Could not resolve table");
 
-                var fields = resolvedTable.GetMembers()
+                var fields = resolvedTable
+                    .GetMembers()
                     .OfType<IFieldSymbol>()
                     .Where(f => !f.IsStatic)
                     .Select(f =>
                     {
-                        var indexKind = f.GetAttributes().Where(
-                            a =>
-                                a.AttributeClass?.ToDisplayString()
+                        var indexKind = f.GetAttributes()
+                            .Where(
+                                a =>
+                                    a.AttributeClass?.ToDisplayString()
                                     == "SpacetimeDB.ColumnIndexAttribute"
-                        ).Select(
-                            a =>
-                                (ColumnIndexKindABI)a.ConstructorArguments[0].Value! switch
-                                {
-                                    ColumnIndexKindABI.Identity => ColumnIndexKindBitflags.Identity,
-                                    ColumnIndexKindABI.AutoInc => ColumnIndexKindBitflags.AutoInc,
-                                    ColumnIndexKindABI.PrimaryKeyAuto
-                                        => ColumnIndexKindBitflags.PrimaryKeyAuto,
-                                    ColumnIndexKindABI.PrimaryKey
-                                        => ColumnIndexKindBitflags.PrimaryKey,
-                                    ColumnIndexKindABI.Unique => ColumnIndexKindBitflags.Unique,
-                                    ColumnIndexKindABI.Indexed => ColumnIndexKindBitflags.Indexed,
-                                    ColumnIndexKindABI.UnSet => ColumnIndexKindBitflags.UnSet,
-                                    var x
-                                        => throw new System.Exception(
-                                            $"Unexpected ColumnIndexKind {x}"
-                                        )
-                                }
-                        ).SingleOrDefault();
+                            )
+                            .Select(
+                                a =>
+                                    (ColumnIndexKind)a.ConstructorArguments[0].Value!
+                            )
+                            .SingleOrDefault();
 
-                        if (indexKind.HasFlag(ColumnIndexKindBitflags.AutoInc))
+                        if (indexKind.HasFlag(ColumnIndexKind.AutoInc))
                         {
                             var isValidForAutoInc = f.Type.SpecialType switch
                             {
@@ -139,9 +107,7 @@ public class Module : IIncrementalGenerator
                 (t, ct) =>
                 {
                     var autoIncFields = t.Fields
-                        .Where(
-                            f => f.IndexKind.HasFlag(ColumnIndexKindBitflags.AutoInc)
-                        )
+                        .Where(f => f.IndexKind.HasFlag(ColumnIndexKind.AutoInc))
                         .Select(f => f.Name);
 
                     var extensions =
@@ -175,7 +141,7 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (f.IndexKind.HasFlag(ColumnIndexKindBitflags.Unique))
+                        if (f.IndexKind.HasFlag(ColumnIndexKind.Unique))
                         {
                             extensions +=
                                 $@"
@@ -218,7 +184,7 @@ public class Module : IIncrementalGenerator
                 FFI.RegisterTable(new SpacetimeDB.Module.TableDef(
                     nameof({t.FullName}),
                     {t.FullName}.GetSatsTypeInfo().AlgebraicType.TypeRef,
-                    new SpacetimeDB.Module.ColumnIndexKind[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.ColumnIndexKind.{f.IndexKind}"))} }},
+                    new SpacetimeDB.Module.TableDef.ColumnIndexKindAbi[] {{ {string.Join(", ", t.Fields.Select(f => $"SpacetimeDB.Module.TableDef.ColumnIndexKindAbi.{f.IndexKind}"))} }},
                     new SpacetimeDB.Module.IndexDef[] {{ }}
                 ));
             "
