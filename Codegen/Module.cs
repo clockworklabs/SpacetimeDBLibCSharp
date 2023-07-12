@@ -7,6 +7,40 @@ using System.Collections.Generic;
 using System.Linq;
 using static Utils;
 
+// TODO: merge those representations once https://github.com/clockworklabs/SpacetimeDB/pull/72 is merged.
+enum ColumnIndexKindABI: byte {
+    UnSet,
+
+    /// Unique + AutoInc
+    Identity,
+
+    /// Index unique
+    Unique,
+
+    ///  Index no unique
+    Indexed,
+
+    /// Generate the next [Sequence]
+    AutoInc,
+
+    /// Primary key column (implies Unique)
+    PrimaryKey,
+
+    /// PrimaryKey + AutoInc
+    PrimaryKeyAuto,
+}
+
+[System.Flags]
+enum ColumnIndexKindBitflags: byte {
+    UnSet = 0b0000,
+    Indexed = 0b0001,
+    AutoInc = 0b0010,
+    Unique = Indexed | 0b0100,
+    Identity = Unique | AutoInc,
+    PrimaryKey = Unique | 0b1000,
+    PrimaryKeyAuto = PrimaryKey | AutoInc,
+}
+
 [Generator]
 public class Module : IIncrementalGenerator
 {
@@ -19,44 +53,41 @@ public class Module : IIncrementalGenerator
             {
                 var table = (TypeDeclarationSyntax)context.TargetNode;
 
-                var fields = table.Members
-                    .OfType<FieldDeclarationSyntax>()
-                    .Where(f => !f.Modifiers.Any(m => m.IsKind(SyntaxKind.StaticKeyword)))
-                    .SelectMany(f =>
+                var resolvedTable = (ITypeSymbol?)
+                    context.SemanticModel.GetDeclaredSymbol(table) ?? throw new System.Exception("Could not resolve table");
+
+                var fields = resolvedTable.GetMembers()
+                    .OfType<IFieldSymbol>()
+                    .Where(f => !f.IsStatic)
+                    .Select(f =>
                     {
-                        var attrVariantName =
-                            f.AttributeLists
-                                .SelectMany(a => a.Attributes)
-                                .Where(
-                                    a =>
-                                        context.SemanticModel.GetSymbolInfo(a).Symbol
-                                            is IMethodSymbol method
-                                        && method.ContainingType.ToDisplayString()
-                                            == "SpacetimeDB.ColumnIndexAttribute"
-                                )
-                                .Select(
-                                    a =>
-                                        a.ArgumentList?.Arguments[0].Expression switch
-                                        {
-                                            MemberAccessExpressionSyntax m
-                                                // Assume object part is already checked by compiler anyway.
-                                                => m.Name.Identifier.Text,
-                                            // In case someone did `using static SpacetimeDB.Module.ColumnIndexKind;`
-                                            IdentifierNameSyntax i => i.Identifier.Text,
-                                            null => null,
-                                            var expr
-                                                => throw new System.Exception(
-                                                    $"Unexpected expression {expr}"
-                                                )
-                                        }
-                                )
-                                .SingleOrDefault() ?? "UnSet";
+                        var indexKind = f.GetAttributes().Where(
+                            a =>
+                                a.AttributeClass?.ToDisplayString()
+                                    == "SpacetimeDB.ColumnIndexAttribute"
+                        ).Select(
+                            a =>
+                                (ColumnIndexKindABI)a.ConstructorArguments[0].Value! switch
+                                {
+                                    ColumnIndexKindABI.Identity => ColumnIndexKindBitflags.Identity,
+                                    ColumnIndexKindABI.AutoInc => ColumnIndexKindBitflags.AutoInc,
+                                    ColumnIndexKindABI.PrimaryKeyAuto
+                                        => ColumnIndexKindBitflags.PrimaryKeyAuto,
+                                    ColumnIndexKindABI.PrimaryKey
+                                        => ColumnIndexKindBitflags.PrimaryKey,
+                                    ColumnIndexKindABI.Unique => ColumnIndexKindBitflags.Unique,
+                                    ColumnIndexKindABI.Indexed => ColumnIndexKindBitflags.Indexed,
+                                    ColumnIndexKindABI.UnSet => ColumnIndexKindBitflags.UnSet,
+                                    var x
+                                        => throw new System.Exception(
+                                            $"Unexpected ColumnIndexKind {x}"
+                                        )
+                                }
+                        ).SingleOrDefault();
 
-                        var type = context.SemanticModel.GetTypeInfo(f.Declaration.Type).Type!;
-
-                        if (attrVariantName == "Identity" || attrVariantName == "AutoInc" || attrVariantName == "PrimaryKeyAuto")
+                        if (indexKind.HasFlag(ColumnIndexKindBitflags.AutoInc))
                         {
-                            var isValidForAutoInc = type.SpecialType switch
+                            var isValidForAutoInc = f.Type.SpecialType switch
                             {
                                 SpecialType.System_Byte
                                 or SpecialType.System_SByte
@@ -68,7 +99,7 @@ public class Module : IIncrementalGenerator
                                 or SpecialType.System_UInt64
                                     => true,
                                 SpecialType.None
-                                    => type.ToString() switch
+                                    => f.Type.ToString() switch
                                     {
                                         "System.Int128" or "System.UInt128" => true,
                                         _ => false
@@ -79,19 +110,16 @@ public class Module : IIncrementalGenerator
                             if (!isValidForAutoInc)
                             {
                                 throw new System.Exception(
-                                    $"Type {type} is not valid for AutoInc or Identity as it's not an integer."
+                                    $"Type {f.Type} is not valid for AutoInc or Identity as it's not an integer."
                                 );
                             }
                         }
 
-                        return f.Declaration.Variables.Select(
-                            v =>
-                                (
-                                    Name: v.Identifier.Text,
-                                    Type: SymbolToName(type),
-                                    TypeInfo: GetTypeInfo(type),
-                                    IndexKind: attrVariantName
-                                )
+                        return (
+                            Name: f.Name,
+                            Type: SymbolToName(f.Type),
+                            TypeInfo: GetTypeInfo(f.Type),
+                            IndexKind: indexKind
                         );
                     })
                     .ToArray();
@@ -112,10 +140,7 @@ public class Module : IIncrementalGenerator
                 {
                     var autoIncFields = t.Fields
                         .Where(
-                            f =>
-                                f.IndexKind == "Identity"
-                                || f.IndexKind == "AutoInc"
-                                || f.IndexKind == "PrimaryKeyAuto"
+                            f => f.IndexKind.HasFlag(ColumnIndexKindBitflags.AutoInc)
                         )
                         .Select(f => f.Name);
 
@@ -150,12 +175,7 @@ public class Module : IIncrementalGenerator
 
                     foreach (var (f, index) in t.Fields.Select((f, i) => (f, i)))
                     {
-                        if (
-                            f.IndexKind == "Unique"
-                            || f.IndexKind == "Identity"
-                            || f.IndexKind == "PrimaryKey"
-                            || f.IndexKind == "PrimaryKeyAuto"
-                        )
+                        if (f.IndexKind.HasFlag(ColumnIndexKindBitflags.Unique))
                         {
                             extensions +=
                                 $@"
