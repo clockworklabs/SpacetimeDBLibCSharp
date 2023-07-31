@@ -11,10 +11,6 @@ public sealed class ReducerAttribute : Attribute {
     }
 
     public string? Name { get; set; }
-
-    // Special reserved reducer names.
-    public const string Init = "__init__";
-    public const string Update = "__update__";
 }
 
 [AttributeUsage(AttributeTargets.Struct | AttributeTargets.Class, Inherited = false, AllowMultiple = false)]
