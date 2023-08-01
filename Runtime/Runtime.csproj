@@ -5,7 +5,21 @@
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
     <AssemblyName>SpacetimeDB.Runtime</AssemblyName>
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <AssemblyVersion>0.6.0</AssemblyVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Version>$(AssemblyVersion)</Version>
+    <Title>SpacetimeDB Module Runtime</Title>
+    <Authors>ingvar_clockwork</Authors>
+    <Company>Clockwork Labs</Company>
+    <Product>SpacetimeDB</Product>
+    <Description>The SpacetimeDB Runtime implements the database runtime bindings for writing SpacetimeDB modules in C#.</Description>
+    <Copyright>2023</Copyright>
+    <PackageProjectUrl>http://spacetimedb.com/</PackageProjectUrl>
+    <PackageIcon>logo.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/clockworklabs/SpacetimeSharpSATS</RepositoryUrl>
   </PropertyGroup>
 
   <ItemGroup>
@@ -14,6 +28,11 @@
 
   <ItemGroup>
     <PackageReference Include="Linq.Expression.Optimizer" Version="1.0.15" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../logo.png" Pack="true" PackagePath="" />
+    <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
 </Project>
