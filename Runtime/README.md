@@ -14,24 +14,3 @@ While not really documented, it allows to build raw WebAssembly modules with cus
 - Finally, `bindings.c` implements no-op shims for all the WASI APIs so that they're linked internally and not attempted to be imported from the runtime itself.
 
 The result is a WebAssembly module FFI-compatible with SpacetimeDB and with no WASI imports, which is what we need.
-
-Since those things can't be forwarded from our `csproj` to the application, the user's project must have following references and properties:
-
-```xml
-<ItemGroup>
-  <ProjectReference Include="SpacetimeSharpSATS/Codegen/Codegen.csproj" OutputItemType="Analyzer" />
-  <ProjectReference Include="SpacetimeSharpSATS/Runtime/Runtime.csproj" />
-</ItemGroup>
-
-<ItemGroup>
-  <!-- Wasi.Sdk must be a dependency of application itself as it does all the bundling magic to turn .NET DLLs into a single Wasm -->
-  <PackageReference Include="Wasi.Sdk" Version="0.1.4-preview.10020" />
-  <!-- Include bindings.c in the native compilation so that it can implement all the necessary imports/exports. -->
-  <WasiNativeFileReference Include="SpacetimeSharpSATS/Runtime/bindings.c" />
-  <!-- Unlike functions, static variables can't be marked with __attribute__((export_name(...))), so they must be referenced on the command line. -->
-  <!-- Oh, and `WasiNativeFileReference` seems to be the only way to pass extra compiler flags even though it's not the intended usage. -->
-  <WasiNativeFileReference Include="-Wl,--export=SPACETIME_ABI_VERSION,--export=SPACETIME_ABI_VERSION_IS_ADDR" />
-  <!-- Make sure `mono_stdb_attach_bindings` attaches the C functions to C# declarations after the runtime has loaded but before any user code has executed. -->
-  <WasiAfterRuntimeLoaded Include="mono_stdb_attach_bindings" />
-</ItemGroup>
-```
