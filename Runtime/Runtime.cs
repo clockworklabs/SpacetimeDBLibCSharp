@@ -200,6 +200,20 @@ public static class Runtime
             StructuralComparisons.StructuralEqualityComparer.GetHashCode(bytes);
 
         public override string ToString() => BitConverter.ToString(bytes);
+
+        private static SpacetimeDB.SATS.TypeInfo<Identity> satsTypeInfo =
+            new(
+                // We need to set type info to inlined identity type as `generate` CLI currently can't recognise type references for built-ins.
+                new SpacetimeDB.SATS.ProductType
+                {
+                    { "__identity_bytes", SpacetimeDB.SATS.BuiltinType.BytesTypeInfo.AlgebraicType }
+                },
+                reader => new(SpacetimeDB.SATS.BuiltinType.BytesTypeInfo.Read(reader)),
+                (writer, value) =>
+                    SpacetimeDB.SATS.BuiltinType.BytesTypeInfo.Write(writer, value.bytes)
+            );
+
+        public static SpacetimeDB.SATS.TypeInfo<Identity> GetSatsTypeInfo() => satsTypeInfo;
     }
 
     public class DbEventArgs : EventArgs
