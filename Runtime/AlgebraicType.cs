@@ -8,12 +8,10 @@ namespace SpacetimeDB.SATS
 {
     // [SpacetimeDB.Type] - we don't want this to be referenced via AlgebraicTypeRef as any other struct
     // because SpacetimeDB CLI `generate` command only recognises unit structs if they're inline.
-    public partial struct Unit {
-        private static TypeInfo<Unit> satsTypeInfo = new(
-            new ProductType(),
-            reader => default,
-            (writer, value) => { }
-        );
+    public partial struct Unit
+    {
+        private static readonly TypeInfo<Unit> satsTypeInfo =
+            new(new ProductType(), reader => default, (writer, value) => { });
 
         public static TypeInfo<Unit> GetSatsTypeInfo() => satsTypeInfo;
     }
@@ -64,9 +62,6 @@ namespace SpacetimeDB.SATS
     }
 
     [SpacetimeDB.Type]
-    partial struct Option<T> : SpacetimeDB.TaggedEnum<(T Some, Unit None)> { }
-
-    [SpacetimeDB.Type]
     public partial struct SumType : IEnumerable<SumTypeVariant>
     {
         public List<SumTypeVariant> Variants = new();
@@ -88,26 +83,27 @@ namespace SpacetimeDB.SATS
             Variants.Add(new SumTypeVariant(name, algebraicType));
         }
 
+        // Special AlgebraicType that can be recognised by the SpacetimeDB `generate` CLI as an Option<T>.
+        private static AlgebraicType MakeOptionAlgebraicType(AlgebraicType algebraicType) =>
+            new SumType
+            {
+                { "some", algebraicType },
+                { "none", Unit.GetSatsTypeInfo().AlgebraicType }
+            };
+
         public static TypeInfo<T?> MakeRefOption<T>(TypeInfo<T> typeInfo)
             where T : class
         {
-            var reprTypeInfo = Option<T>.GetSatsTypeInfo(typeInfo);
-
             return new TypeInfo<T?>(
-                reprTypeInfo.AlgebraicType,
-                (reader) =>
-                {
-                    var repr = reprTypeInfo.Read(reader);
-                    return repr.IsSome ? repr.Some : null;
-                },
+                MakeOptionAlgebraicType(typeInfo.AlgebraicType),
+                (reader) => reader.ReadBoolean() ? null : typeInfo.Read(reader),
                 (writer, value) =>
                 {
-                    var repr = value switch
+                    writer.Write(value is null);
+                    if (value is not null)
                     {
-                        null => new Option<T> { None = default },
-                        _ => new Option<T> { Some = value }
-                    };
-                    reprTypeInfo.Write(writer, repr);
+                        typeInfo.Write(writer, value);
+                    }
                 }
             );
         }
@@ -119,23 +115,16 @@ namespace SpacetimeDB.SATS
         public static TypeInfo<T?> MakeValueOption<T>(TypeInfo<T> typeInfo)
             where T : struct
         {
-            var reprTypeInfo = Option<T>.GetSatsTypeInfo(typeInfo);
-
             return new TypeInfo<T?>(
-                reprTypeInfo.AlgebraicType,
-                (reader) =>
-                {
-                    var repr = reprTypeInfo.Read(reader);
-                    return repr.IsSome ? repr.Some : null;
-                },
+                MakeOptionAlgebraicType(typeInfo.AlgebraicType),
+                (reader) => reader.ReadBoolean() ? null : typeInfo.Read(reader),
                 (writer, value) =>
                 {
-                    var repr = value.HasValue switch
+                    writer.Write(!value.HasValue);
+                    if (value.HasValue)
                     {
-                        false => new Option<T> { None = default },
-                        true => new Option<T> { Some = value.Value }
-                    };
-                    reprTypeInfo.Write(writer, repr);
+                        typeInfo.Write(writer, value.Value);
+                    }
                 }
             );
         }
@@ -398,7 +387,7 @@ namespace SpacetimeDB.SATS
         }
 
         private static Dictionary<Type, object> enumTypeInfoCache = new();
-        private static AlgebraicType unitType = Unit.GetSatsTypeInfo().AlgebraicType;
+        private static readonly AlgebraicType unitType = Unit.GetSatsTypeInfo().AlgebraicType;
 
         public static TypeInfo<T> MakeEnum<T>()
             where T : struct, Enum, IConvertible
