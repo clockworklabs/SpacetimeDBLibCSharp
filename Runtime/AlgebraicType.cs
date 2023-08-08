@@ -88,7 +88,7 @@ namespace SpacetimeDB.SATS
             Variants.Add(new SumTypeVariant(name, algebraicType));
         }
 
-        public static TypeInfo<T?> MakeOption<T>(TypeInfo<T> typeInfo)
+        public static TypeInfo<T?> MakeRefOption<T>(TypeInfo<T> typeInfo)
             where T : class
         {
             var reprTypeInfo = Option<T>.GetSatsTypeInfo(typeInfo);
@@ -104,8 +104,36 @@ namespace SpacetimeDB.SATS
                 {
                     var repr = value switch
                     {
-                        null => new Option<T> { None = new Unit() },
+                        null => new Option<T> { None = default },
                         _ => new Option<T> { Some = value }
+                    };
+                    reprTypeInfo.Write(writer, repr);
+                }
+            );
+        }
+
+        // Yes, your eyes are not deceiving you... the body of this function is nearly identical
+        // to MakeRefOption above. The only difference is the constraint on T.
+        // Yes, this is dumb, but apparently you can't have *really* generic `T?` because,
+        // despite identical bodies, compiler will desugar it very differently based on constraint.
+        public static TypeInfo<T?> MakeValueOption<T>(TypeInfo<T> typeInfo)
+            where T : struct
+        {
+            var reprTypeInfo = Option<T>.GetSatsTypeInfo(typeInfo);
+
+            return new TypeInfo<T?>(
+                reprTypeInfo.AlgebraicType,
+                (reader) =>
+                {
+                    var repr = reprTypeInfo.Read(reader);
+                    return repr.IsSome ? repr.Some : null;
+                },
+                (writer, value) =>
+                {
+                    var repr = value.HasValue switch
+                    {
+                        false => new Option<T> { None = default },
+                        true => new Option<T> { Some = value.Value }
                     };
                     reprTypeInfo.Write(writer, repr);
                 }

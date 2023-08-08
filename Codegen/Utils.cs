@@ -45,9 +45,14 @@ static class Utils
 
     public static string GetTypeInfo(ITypeSymbol type)
     {
-        if (type.NullableAnnotation == NullableAnnotation.Annotated)
+        // We need to distinguish handle nullable reference types specially:
+        // compiler expands something like `int?` to `System.Nullable<int>` but with the nullable annotation set to `Annotated`
+        // while something like `string?` is expanded to `string` with the nullable annotation set to `Annotated`...
+        // Beautiful design requires beautiful hacks.
+        if (type.NullableAnnotation == NullableAnnotation.Annotated && type.OriginalDefinition.ToString() != "System.Nullable<T>")
         {
-            return $"SpacetimeDB.SATS.SumType.MakeOption({GetTypeInfo(type.WithNullableAnnotation(NullableAnnotation.None))})";
+            // if we're here, then this is a nullable reference type like `string?`.
+            return $"SpacetimeDB.SATS.SumType.MakeRefOption({GetTypeInfo(type.WithNullableAnnotation(NullableAnnotation.None))})";
         }
         return type switch
         {
@@ -89,6 +94,8 @@ static class Utils
                     {
                         "System.Collections.Generic.List<T>" => "SpacetimeDB.SATS.BuiltinType.MakeList",
                         "System.Collections.Generic.Dictionary<TKey, TValue>" => "SpacetimeDB.SATS.BuiltinType.MakeMap",
+                        // If we're here, then this is nullable value type like `int?`.
+                        "System.Nullable<T>" => $"SpacetimeDB.SATS.SumType.MakeValueOption",
                         var name when name.StartsWith("System.") => throw new InvalidOperationException(
                             $"Unsupported system type {name}"
                         ),
