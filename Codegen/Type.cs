@@ -245,9 +245,18 @@ public static SpacetimeDB.SATS.TypeInfo<{type.GenericName}> GetSatsTypeInfo({
     var fieldTypeInfo = new {{
         {string.Join("\n", type.Members.Select(m => $"{m.Name} = {GetTypeInfo(m.TypeSymbol)},"))}
     }};
-    SpacetimeDB.Module.FFI.SetTypeRef<{type.GenericName}>(typeRef, new SpacetimeDB.SATS.{typeKind}Type {{
-        {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
-    }});
+    SpacetimeDB.Module.FFI.SetTypeRef<{type.GenericName}>(
+        typeRef,
+        new SpacetimeDB.SATS.{typeKind}Type {{
+            {string.Join("\n", type.Members.Select(m => $"{{ nameof({m.Name}), fieldTypeInfo.{m.Name}.AlgebraicType }},"))}
+        }},
+        {(
+            fullyQualifiedMetadataName == "SpacetimeDB.TableAttribute"
+            // anonymous (don't register type alias) if it's a table that will register its own name in a different way
+            ? "true"
+            : "false"
+        )}
+    );
     read = (reader) => {read};
     write = (writer, value) => {{
         {write}

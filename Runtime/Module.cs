@@ -126,15 +126,18 @@ public partial struct ModuleDef
             ? $"{type.Name.Remove(type.Name.IndexOf('`'))}_{string.Join("_", type.GetGenericArguments().Select(GetFriendlyName))}"
             : type.Name;
 
-    public void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type)
+    public void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type, bool anonymous = false)
     {
         Types[typeRef.TypeRef] = type;
-        MiscExports.Add(
-            new MiscModuleExport
-            {
-                TypeAlias = new TypeAlias { Name = GetFriendlyName(typeof(T)), Type = typeRef }
-            }
-        );
+        if (!anonymous)
+        {
+            MiscExports.Add(
+                new MiscModuleExport
+                {
+                    TypeAlias = new TypeAlias { Name = GetFriendlyName(typeof(T)), Type = typeRef }
+                }
+            );
+        }
     }
 
     public void Add(TableDef table)
@@ -187,8 +190,8 @@ public static class FFI
 
     public static AlgebraicTypeRef AllocTypeRef() => module.AllocTypeRef();
 
-    public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type) =>
-        module.SetTypeRef<T>(typeRef, type);
+    public static void SetTypeRef<T>(AlgebraicTypeRef typeRef, AlgebraicType type, bool anonymous = false) =>
+        module.SetTypeRef<T>(typeRef, type, anonymous);
 
     // Note: this is accessed by C bindings.
     private static byte[] DescribeModule()
