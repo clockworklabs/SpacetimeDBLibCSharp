@@ -1,9 +1,29 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <ItemGroup>
+        <LinkerArg Include="$(MSBuildThisFileDirectory)../bindings.c" />
 
-  <ItemGroup>
-    <WasiNativeFileReference Include="$(MSBuildThisFileDirectory)../bindings.c" />
-    <WasiNativeFileReference Include="-Wl,--export=SPACETIME_ABI_VERSION,--export=SPACETIME_ABI_VERSION_IS_ADDR" />
-    <WasiAfterRuntimeLoaded Include="mono_stdb_attach_bindings" />
-  </ItemGroup>
+        <WasmImport Include="spacetime!_get_table_id" />
+        <WasmImport Include="spacetime!_create_index" />
+        <WasmImport Include="spacetime!_iter_by_col_eq" />
+        <WasmImport Include="spacetime!_insert" />
+        <WasmImport Include="spacetime!_delete_by_col_eq" />
+        <WasmImport Include="spacetime!_iter_start" />
+        <WasmImport Include="spacetime!_iter_start_filtered" />
+        <WasmImport Include="spacetime!_iter_next" />
+        <WasmImport Include="spacetime!_iter_drop" />
+        <WasmImport Include="spacetime!_console_log" />
+        <WasmImport Include="spacetime!_schedule_reducer" />
+        <WasmImport Include="spacetime!_cancel_reducer" />
+        <WasmImport Include="spacetime!_buffer_len" />
+        <WasmImport Include="spacetime!_buffer_consume" />
+        <WasmImport Include="spacetime!_buffer_alloc" />
 
+        <LinkerArg Include="-Wl,--export=SPACETIME_ABI_VERSION,--export=SPACETIME_ABI_VERSION_IS_ADDR" />
+        <LinkerArg Include="-Wl,--export=__describe_module__" />
+        <LinkerArg Include="-Wl,--export=__call_reducer__" />
+        <LinkerArg Include="-Wl,--export=__identity_connected__" />
+        <LinkerArg Include="-Wl,--export=__identity_disconnected__" />
+
+        <LinkerArg Include="-mexec-model=reactor" />
+    </ItemGroup>
 </Project>

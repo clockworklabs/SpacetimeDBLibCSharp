@@ -194,7 +194,7 @@ public static class FFI
         module.SetTypeRef<T>(typeRef, type, anonymous);
 
     // Note: this is accessed by C bindings.
-    private static byte[] DescribeModule()
+    internal static byte[] DescribeModule()
     {
         // replace `module` with a temporary internal module that will register ModuleDef, AlgebraicType and other internal types
         // during the ModuleDef.GetSatsTypeInfo() instead of exposing them via user's module.
@@ -211,7 +211,7 @@ public static class FFI
     }
 
     // Note: this is accessed by C bindings.
-    private static string? CallReducer(
+    internal static string? CallReducer(
         uint id,
         byte[] sender_identity,
         ulong timestamp,

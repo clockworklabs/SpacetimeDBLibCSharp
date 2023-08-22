@@ -112,7 +112,7 @@ public class Module : IIncrementalGenerator
 
                     var extensions =
                         $@"
-                            private static readonly Lazy<uint> tableId = new (() => SpacetimeDB.Runtime.GetTableId(nameof({t.Name})));
+                            private static readonly Lazy<uint> tableId = new (() => SpacetimeDB.Bindings.GetTableId(nameof({t.Name})));
 
                             public static IEnumerable<{t.Name}> Iter() =>
                                 new SpacetimeDB.Runtime.RawTableIter(tableId.Value)
@@ -129,7 +129,7 @@ public class Module : IIncrementalGenerator
                             public void Insert() {{
                                 var typeInfo = GetSatsTypeInfo();
                                 var bytes = typeInfo.ToBytes(this);
-                                SpacetimeDB.Runtime.Insert(tableId.Value, bytes);
+                                SpacetimeDB.Bindings.Insert(tableId.Value, bytes);
                                 // bytes should contain modified value now with autoinc fields updated
                                 {(autoIncFields.Any() ? $@"
                                     var newInstance = typeInfo.ReadBytes(bytes).SingleOrDefault();
@@ -147,16 +147,16 @@ public class Module : IIncrementalGenerator
                                 $@"
                                     public static {t.Name}? FindBy{f.Name}({f.Type} {f.Name}) =>
                                         GetSatsTypeInfo().ReadBytes(
-                                            SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
+                                            SpacetimeDB.Bindings.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
                                         )
                                         .Cast<{t.Name}?>()
                                         .SingleOrDefault();
 
                                     public static bool DeleteBy{f.Name}({f.Type} {f.Name}) =>
-                                        SpacetimeDB.Runtime.DeleteByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name})) > 0;
+                                        SpacetimeDB.Bindings.DeleteByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name})) > 0;
 
                                     public static bool UpdateBy{f.Name}({f.Type} {f.Name}, {t.Name} value) =>
-                                        SpacetimeDB.Runtime.UpdateByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
+                                        SpacetimeDB.Bindings.UpdateByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}), GetSatsTypeInfo().ToBytes(value));
                                 ";
                         }
 
@@ -164,7 +164,7 @@ public class Module : IIncrementalGenerator
                             $@"
                                 public static IEnumerable<{t.Name}> FilterBy{f.Name}({f.Type} {f.Name}) =>
                                     GetSatsTypeInfo().ReadBytes(
-                                        SpacetimeDB.Runtime.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
+                                        SpacetimeDB.Bindings.IterByColEq(tableId.Value, {index}, {f.TypeInfo}.ToBytes({f.Name}))
                                     );
                             ";
                     }
