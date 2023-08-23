@@ -3,14 +3,7 @@
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <NativeLib>Static</NativeLib>
-    <TargetArchitecture>wasm</TargetArchitecture>
-    <PlatformTarget>AnyCPU</PlatformTarget>
-    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
-    <EmitLegacyAssetsFileItems>true</EmitLegacyAssetsFileItems>
-    <SelfContained>true</SelfContained>
-    <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
     <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -46,19 +39,8 @@
     <None Include="../logo.png" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="" />
     <None Include="../LICENSE" Pack="true" PackagePath="" />
+    <None Include="build/" Pack="true" PackagePath="build" />
+    <None Include="bindings.c" Pack="true" PackagePath="" />
   </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
-    <PackageReference Include="runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
-    <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="8.0.0-*" Condition="'$(ILLinkTargetsPath)' == ''" />
-  </ItemGroup>
-
-  <Target Name="PackTaskDependencies" BeforeTargets="GenerateNuspec">
-    <ItemGroup>
-      <_PackageFiles Include="build\**" BuildAction="Content" PackagePath="build" />
-      <_PackageFiles Include="bindings.c" BuildAction="Content" PackagePath="" />
-    </ItemGroup>
-  </Target>
 
 </Project>

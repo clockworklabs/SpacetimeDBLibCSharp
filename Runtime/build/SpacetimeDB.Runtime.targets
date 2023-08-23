@@ -1,6 +1,13 @@
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <RuntimeIdentifier>wasi-wasm</RuntimeIdentifier>
+        <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+    </PropertyGroup>
+
     <ItemGroup>
-        <LinkerArg Include="$(MSBuildThisFileDirectory)../bindings.c" />
+        <NativeLibrary Include="$(MSBuildThisFileDirectory)../bindings.c" />
+
+        <UnmanagedEntryPointsAssembly Include="SpacetimeDB.Runtime" />
 
         <WasmImport Include="spacetime!_get_table_id" />
         <WasmImport Include="spacetime!_create_index" />
@@ -25,5 +32,9 @@
         <LinkerArg Include="-Wl,--export=__identity_disconnected__" />
 
         <LinkerArg Include="-mexec-model=reactor" />
+
+        <PackageReference Include="Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
+        <PackageReference Include="runtime.win-x64.Microsoft.DotNet.ILCompiler.LLVM" Version="8.0.0-*" />
+        <PackageReference Include="Microsoft.NET.ILLink.Tasks" Version="8.0.0-*" Condition="'$(ILLinkTargetsPath)' == ''" />
     </ItemGroup>
 </Project>
