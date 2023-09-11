@@ -36,17 +36,12 @@
     <None Include="../logo.png" Pack="true" PackagePath="" />
     <None Include="README.md" Pack="true" PackagePath="" />
     <None Include="../LICENSE" Pack="true" PackagePath="" />
+    <None Include="build/" Pack="true" PackagePath="build" />
+    <None Include="bindings.c" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
     <UpToDateCheckInput Include="bindings.c" />
   </ItemGroup>
-
-  <Target Name="PackTaskDependencies" BeforeTargets="GenerateNuspec">
-    <ItemGroup>
-      <_PackageFiles Include="build\**" BuildAction="Content" PackagePath="build" />
-      <_PackageFiles Include="bindings.c" BuildAction="Content" PackagePath="" />
-    </ItemGroup>
-  </Target>
 
 </Project>
