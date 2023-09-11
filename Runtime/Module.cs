@@ -24,35 +24,10 @@ public partial struct IndexDef
 [SpacetimeDB.Type]
 public partial struct TableDef
 {
-    // TODO: merge those representations once https://github.com/clockworklabs/SpacetimeDB/pull/72 is merged.
-    // Careful: the names of the variant must match those in the Codegen/Module.cs
-    [SpacetimeDB.Type]
-    public enum ColumnAttrsAbi : byte
-    {
-        UnSet,
-
-        /// Unique + AutoInc
-        Identity,
-
-        /// Index unique
-        Unique,
-
-        ///  Index no unique
-        Indexed,
-
-        /// Generate the next [Sequence]
-        AutoInc,
-
-        /// Primary key column (implies Unique)
-        PrimaryKey,
-
-        /// PrimaryKey + AutoInc
-        PrimaryKeyAuto,
-    }
-
     string Name;
     AlgebraicTypeRef Data;
-    ColumnAttrsAbi[] ColumnAttrs;
+    // bitflags should be serialized as bytes rather than sum types
+    byte[] ColumnAttrs;
     IndexDef[] Indices;
 
     // "system" | "user"
@@ -64,13 +39,13 @@ public partial struct TableDef
     public TableDef(
         string name,
         AlgebraicTypeRef type,
-        ColumnAttrsAbi[] columnAttrs,
+        ColumnAttrs[] columnAttrs,
         IndexDef[] indices
     )
     {
         Name = name;
         Data = type;
-        ColumnAttrs = columnAttrs;
+        ColumnAttrs = columnAttrs.Cast<byte>().ToArray();
         Indices = indices;
         TableType = "user";
         TableAccess = name.StartsWith('_') ? "private" : "public";
