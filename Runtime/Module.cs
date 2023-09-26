@@ -189,6 +189,7 @@ public static class FFI
     private static string? CallReducer(
         uint id,
         byte[] sender_identity,
+        byte[] sender_address,
         ulong timestamp,
         byte[] args
     )
